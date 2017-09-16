@@ -33,3 +33,13 @@ TODO:
       File "/usr/local/lib/python2.7/dist-packages/cloak/serverapi/cli/commands/crls.py", line 73, in _fetch_crl
         with open(crl_path, 'wb') as f:
     IOError: [Errno 2] No such file or directory: u'/etc/encryptme/pki/crls/ca_b2sibrq4jwbgxr3o.pem'
+
+TODO
+
+- Cron jobs
+- Fix PKI CRL init error above
+- Get strongswan running and doument required args for docker
+  https://github.com/philpl/docker-strongswan
+- Integrate Letsencrypt
+- Get OpenVPN running
+
