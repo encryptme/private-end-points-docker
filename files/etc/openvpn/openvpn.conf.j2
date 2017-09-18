@@ -1,0 +1,42 @@
+# These parameters are shared with the clients and must not be changed.
+dev tun
+proto {{cloak_server.proto}}
+port {{cloak_server.port}}
+cipher {{cloak_server.cipher}}
+auth {{cloak_server.digest}}
+
+# This defines the virtual subnet. We recommend choosing one of the 10.x.0.0/16
+# subnets for Cloak. This will then need to be subdivided for the different
+# protocols.
+server {% if cloak_server.proto=='udp' %}10.137.0.0{% else %}10.137.64.0{% endif %} 255.255.192.0
+
+# We keep all of our certificates and CRLs in /home/cloak/pki/.
+key /home/cloak/pki/key.pem
+cert /home/cloak/pki/server.pem
+ca /home/cloak/pki/anchor.pem
+extra-certs /home/cloak/pki/client_ca.pem
+crl-verify /home/cloak/pki/crls.pem
+
+# You must also supply Diffie-Hellman parameters. We recommend generating your
+# own 2048-bit parameters.
+dh /home/cloak/pki/dh2048.pem
+
+# Send DNS requests to a resolver listening on the gateway address. Anything
+# else leaves you open to DNS hijacking by malicious routers.
+push "dhcp-option DNS {% if cloak_server.proto=='udp' %}10.137.0.1{% else %}10.137.64.1{% endif %}"
+
+# Just to be on the safe side, we'll make sure that only client certificates
+# are accepted. Without this, we would accept connections from other servers
+# configured with the same PKI.
+remote-cert-eku "TLS Web Client Authentication"
+
+# These are some miscellaneous settings that you'll probably want.
+keepalive 10 120
+{% if cloak_server.proto == 'udp' %}
+push "explicit-exit-notify"
+{% elif cloak_server.proto == 'tcp' %}
+tcp-nodelay
+{% endif %}
+
+# See https://community.openvpn.net/openvpn/wiki/Openvpn23ManPage for more. You
+# may want to turn on logging or define a managemet interface.

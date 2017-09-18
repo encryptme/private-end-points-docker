@@ -121,8 +121,24 @@ sysctl -w net.ipv4.ip_forward=1
 # TODO merge rules, don't blow them away.
 # /sbin/iptables-restore < /etc/iptables.rules
 
-# TODO Run substitution on /etc/openvpn
-
+get_openvpn_conf() {
+    out=$(cat /tmp/server.json | jq ".target.openvpn[$1]")
+    if [ "$out" = null ]; then
+        echo ""
+    else
+        echo "$out"
+    fi
+}
+n=0
+conf="$(get_openvpn_conf $n)"
+while [ ! -z "$conf" ]; do
+    echo "$conf" > /tmp/openvpn.$n.json
+    /bin/template.py -d /tmp/openvpn.$n.json -s /etc/openvpn/openvpn.conf.j2 -o /etc/openvpn/server-$n.conf
+    echo "Started OpenVPN instance #$n"
+    /usr/sbin/openvpn --daemon ovpn-encryptme-$n --status /run/openvpn/encryptme-$n.status 10 --cd /etc/openvpn --script-security 2 --config /etc/openvpn/encryptme-$n.conf --writepid /run/openvpn/encryptme-$n.pid &
+    n=$[ $n + 1 ]
+    conf="$(get_openvpn_conf $n)"
+done
 
 echo "Started"
 
