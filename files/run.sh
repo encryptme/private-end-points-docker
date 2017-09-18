@@ -3,6 +3,7 @@
 set -eo pipefail
 IFS=$'\n\t'
 
+
 case "$1" in
     /*)
         exec "$@"
@@ -23,7 +24,6 @@ ENCRYPTME_CONF="${ENCRYPTME_DIR}/encyptme.conf"
 ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 
 
-echo "Performing pre-flight checks"
 
 if [ ! -d "$ENCRYPTME_DIR" ]; then
     echo "ENCRYPTME_DIR '$ENCRYPTME_DIR' must exist" >&2
@@ -81,8 +81,6 @@ if [ ! -f "$ENCRYPTME_CONF" ]; then
     shift
 fi
 
-encryptme_server info --json | json_pp
-
 if [ ! -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
     echo "Requesting certificate (and waiting for approval)"
     encryptme_server req --key "$ENCRYPTME_PKI_DIR/cloak.pem"
@@ -96,3 +94,41 @@ if [ ! -f "$ENCRYPTME_PKI_DIR/dh2048.pem" ]; then
     echo "Generating DH Params"
     openssl dhparam -out "$ENCRYPTME_PKI_DIR/dh2048.pem" 2048
 fi
+
+echo "Getting server info"
+encryptme_server info --json | json_pp | tee /tmp/server.json
+if [ ! -s /tmp/server.json ]; then
+    echo "Did not get response from API server or received invalid json"
+    exit 5
+fi
+
+
+rundaemon () {
+    echo "starting" "$@"
+    "$@"
+}
+
+# Start services
+# TODO Supervisord?
+rundaemon rsyslogd
+rundaemon cron
+rundaemon unbound
+
+# Ensure networking is setup properly
+sysctl -w net.ipv4.ip_forward=1
+
+/bin/template.py -d /tmp/server.json -s /etc/iptables.rules.j2 -o /etc/iptables.rules
+# TODO merge rules, don't blow them away.
+# /sbin/iptables-restore < /etc/iptables.rules
+
+# TODO Run substitution on /etc/openvpn
+
+
+echo "Started"
+
+# Sleep forever
+while true; do
+    date
+    sleep 60
+done
+

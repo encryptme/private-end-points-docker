@@ -10,7 +10,11 @@ These are required on first run only, if you wish to automate registration.
 
 You can bootstrap interactively if you run with a tty:
 
-   docker run -it --rm -v `pwd`/etc:/etc/encyptme
+    docker build -t encryptme .
+    docker run -it --rm -v `pwd`/etc:/etc/encryptme \
+      --privileged \
+      --net host \
+      encryptme
 
 
 MOUNTOINTS
@@ -34,12 +38,17 @@ TODO:
         with open(crl_path, 'wb') as f:
     IOError: [Errno 2] No such file or directory: u'/etc/encryptme/pki/crls/ca_b2sibrq4jwbgxr3o.pem'
 
+    This causes run.sh to exit.
+
+
 TODO
 
-- Cron jobs
+- Fix IpTables rule loading
 - Fix PKI CRL init error above
 - Get strongswan running and doument required args for docker
   https://github.com/philpl/docker-strongswan
 - Integrate Letsencrypt
 - Get OpenVPN running
+- Fix syslogging to stdout/stderr
+
 

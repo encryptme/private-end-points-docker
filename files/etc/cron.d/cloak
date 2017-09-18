@@ -1,0 +1,2 @@
+@daily cloak /home/cloak/bin/update-pki.sh
+* * * * * cloak /home/cloak/bin/refresh-crls.sh

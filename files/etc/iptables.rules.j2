@@ -1,0 +1,74 @@
+# vim:ft=ipfilter
+
+*filter
+
+# Allow all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0.
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+
+# SSH
+-A INPUT -p tcp --dport ssh -j ACCEPT
+
+# OpenVPN
+{% for config in cloak_server.target.openvpn %}
+-A INPUT -p {{config.proto}} --dport {{config.port}} -j ACCEPT
+{% endfor %}
+
+# IPsec, isakmp, NAT-T
+-A INPUT -p 50 -j ACCEPT
+-A INPUT -p udp --dport 500 -j ACCEPT
+-A INPUT -p udp --dport 4500 -j ACCEPT
+
+# DNS through the tunnel
+-A INPUT -s 10.137.0.0/16 -p udp --dport domain -j ACCEPT
+-A INPUT -s 10.137.0.0/16 -p tcp --dport domain -j ACCEPT
+
+# Everything else
+-A INPUT -j REJECT
+
+
+# Isolate all private addresses. In particular, don't let users see each other.
+-A FORWARD -s 10.0.0.0/8 -d 10.0.0.0/8 -j DROP
+
+# Docker-machine
+:INPUT ACCEPT [11866:48611766]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [10514:992873]
+:DOCKER - [0:0]
+:DOCKER-ISOLATION - [0:0]
+:DOCKER-USER - [0:0]
+-A FORWARD -j DOCKER-USER
+-A FORWARD -j DOCKER-ISOLATION
+-A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -o docker0 -j DOCKER
+-A FORWARD -i docker0 ! -o docker0 -j ACCEPT
+-A FORWARD -i docker0 -o docker0 -j ACCEPT
+-A DOCKER-ISOLATION -j RETURN
+-A DOCKER-USER -j RETURN
+
+COMMIT
+
+
+*nat
+
+# Act as a NAT for all VPN clients. You may wish to use a dedicated egress IP,
+# but we'll just use the primary one here.
+-A POSTROUTING -s 10.137.0.0/16 -j SNAT --to-source {{ip}} --random
+
+# Docker-machine
+:PREROUTING ACCEPT [101:12525]
+:INPUT ACCEPT [74:9420]
+:OUTPUT ACCEPT [52:3303]
+:POSTROUTING ACCEPT [52:3303]
+:DOCKER - [0:0]
+-A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+-A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
+-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+-A DOCKER -i docker0 -j RETURN
+
+
+COMMIT
+
