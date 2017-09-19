@@ -119,8 +119,7 @@ rundaemon unbound -d &
 sysctl -w net.ipv4.ip_forward=1
 
 /bin/template.py -d /tmp/server.json -s /etc/iptables.rules.j2 -o /etc/iptables.rules
-# TODO merge rules, don't blow them away.
-# /sbin/iptables-restore < /etc/iptables.rules
+/sbin/iptables-restore --noflush < /etc/iptables.rules
 
 
 # Configure and launch OpenVPN

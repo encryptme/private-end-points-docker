@@ -28,7 +28,8 @@ You can bootstrap interactively if you run with a tty:
 ### TODO:
 
 
-- Fix IpTables rule loading
+- Determine whether to add 10.x.x.x rule and -j REJECT
+
 - Get strongswan running and document required args for docker
   https://github.com/philpl/docker-strongswan
 - Integrate Letsencrypt (including ipsec.conf)
