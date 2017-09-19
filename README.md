@@ -31,7 +31,7 @@ You can bootstrap interactively if you run with a tty:
 - Fix IpTables rule loading
 - Get strongswan running and document required args for docker
   https://github.com/philpl/docker-strongswan
-- Integrate Letsencrypt
+- Integrate Letsencrypt (including ipsec.conf)
 - Use supervisord
 - Make update-pki.sh use supervisor restarts
 

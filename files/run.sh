@@ -122,6 +122,8 @@ sysctl -w net.ipv4.ip_forward=1
 # TODO merge rules, don't blow them away.
 # /sbin/iptables-restore < /etc/iptables.rules
 
+
+# Configure and launch OpenVPN
 get_openvpn_conf() {
     out=$(cat /tmp/server.json | jq ".target.openvpn[$1]")
     if [ "$out" = null ]; then
@@ -143,6 +145,16 @@ while [ ! -z "$conf" ]; do
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
 done
+
+
+# Configure and launch strongSwan
+echo "Starting strongSwan"
+/bin/template.py -d /tmp/server.json -s /etc/ipsec.conf.j2 -o /etc/ipsec.conf -v letsencrypt=
+/bin/template.py -d /tmp/server.json -s /etc/ipsec.secrets.j2 -o /etc/ipsec.secrets -v letsencrypt=
+/usr/sbin/ipsec start
+#/usr/sbin/ipsec reload
+#/usr/sbin/ipsec rereadcacerts
+#/usr/sbin/ipsec rereadcrls
 
 echo "Started"
 
