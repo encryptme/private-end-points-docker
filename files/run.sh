@@ -16,7 +16,7 @@ case "$1" in
 esac
 
 
-opt_ENCRYPTME_USER=--email
+opt_ENCRYPTME_EMAIL=--email
 opt_ENCRYPTME_PASSWORD=--password
 opt_ENCRYPTME_TARGET_ID=--target
 opt_ENCRYPTME_SERVER_NAME=-n
@@ -40,6 +40,11 @@ if [ ! -d "$ENCRYPTME_PKI_DIR" ]; then
     exit 3
 fi
 
+if [ -z "$ENCRYPTME_EMAIL" -a "${DISABLE_LETSENCRYPT:-}" != 1 ]; then
+    echo "ENCRYPTME_EMAIL must be set if DISABLE_LETSENCRYPT is not set"
+    exit 4
+fi
+
 encryptme_server() {
     cloak-server --config $ENCRYPTME_CONF "$@"
 }
@@ -52,7 +57,7 @@ if [ ! -f "$ENCRYPTME_CONF" ]; then
     args=""
     missing=""
     set ""
-    for var in ENCRYPTME_USER ENCRYPTME_PASSWORD ENCRYPTME_TARGET_ID \
+    for var in ENCRYPTME_EMAIL ENCRYPTME_PASSWORD ENCRYPTME_TARGET_ID \
                ENCRYPTME_SERVER_NAME; do
         value="${!var}"
         if [ -z "$value" ]; then
@@ -104,6 +109,58 @@ if [ ! -s /tmp/server.json ]; then
     exit 5
 fi
 
+# Gather FQDNs
+jq -r '.target.ikev2[].fqdn, .target.openvpn[].fqdn'  < /tmp/server.json | sort -u > /tmp/fqdns
+
+# Test FQDNs match IPs on this system
+DNSOK=1
+cat /tmp/fqdns | while read hostname; do
+    echo "Checking DNS for FQDN '$hostname'"
+    DNS=`kdig +short A $hostname | egrep '^[0-9]+\.'`
+    if [ ! -z "$DNS" ]; then
+        echo "Found IP '$DNS' for $hostname"
+        if ip addr show | grep "$DNS" > /dev/null; then
+            echo "Looks good: Found IP '$DNS' on local system"
+        else
+            DNSOK=0
+            echo "WARNING: Could not find '$DNS' on the local system.  DNS mismatch?"
+        fi
+    else
+        echo "WARNING: $hostname does not resolve"
+        DNSOK=0
+    fi
+done
+
+
+# Perform letsencrypt if not disabled
+# Also runs renewals if a cert exists
+LETSENCRYPT=0
+if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
+    LETSENCRYPT=1
+    if [ "$DNSOK" = 0 ]; then
+        echo "WARNING: DNS issues found, it is unlikely letsencrypt will succeed."
+    fi
+
+    primary_fqdn="$(head -1 /tmp/fqdns)"
+    set --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
+    cat /tmp/fqdns | while read fqdn; do
+        set "$@" "-d" "$fqdn"
+    done
+    set "$@" --expand --standalone --standalone-supported-challenges http-01
+
+    # Perform letsencrypt
+    /sbin/iptables -I INPUT 5 -p tcp --dport http -j ACCEPT
+    if [ ! -f "/etc/letsencrypt/live/$primary_fqdn/fullchain.pem" ]; then
+        echo "Getting certificate for $(cat /etc/fqdns)"
+        letsencrypt "$@"
+        set "--"
+    else
+        letsencrypt renew
+    fi
+    cp "/etc/letsencrypt/live/$primary_fqdn/privkey.pem" /etc/ipsec.d/private/letsencrypt.pem
+    cp "/etc/letsencrypt/live/$primary_fqdn/fullchain.pem" /etc/ipsec.d/certs/letsencrypt.pem
+    /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
+fi
 
 rundaemon () {
     echo "starting" "$@"
@@ -148,8 +205,8 @@ done
 
 # Configure and launch strongSwan
 echo "Starting strongSwan"
-/bin/template.py -d /tmp/server.json -s /etc/ipsec.conf.j2 -o /etc/ipsec.conf -v letsencrypt=
-/bin/template.py -d /tmp/server.json -s /etc/ipsec.secrets.j2 -o /etc/ipsec.secrets -v letsencrypt=
+/bin/template.py -d /tmp/server.json -s /etc/ipsec.conf.j2 -o /etc/ipsec.conf -v letsencrypt=$LETSENCRYPT
+/bin/template.py -d /tmp/server.json -s /etc/ipsec.secrets.j2 -o /etc/ipsec.secrets -v letsencrypt=$LETSENCRYPT
 /usr/sbin/ipsec start
 #/usr/sbin/ipsec reload
 #/usr/sbin/ipsec rereadcacerts
