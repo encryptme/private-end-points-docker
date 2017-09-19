@@ -5,21 +5,23 @@ port {{cloak_server.port}}
 cipher {{cloak_server.cipher}}
 auth {{cloak_server.digest}}
 
+log /dev/stdout
+
 # This defines the virtual subnet. We recommend choosing one of the 10.x.0.0/16
 # subnets for Cloak. This will then need to be subdivided for the different
 # protocols.
 server {% if cloak_server.proto=='udp' %}10.137.0.0{% else %}10.137.64.0{% endif %} 255.255.192.0
 
-# We keep all of our certificates and CRLs in /home/cloak/pki/.
-key /home/cloak/pki/key.pem
-cert /home/cloak/pki/server.pem
-ca /home/cloak/pki/anchor.pem
-extra-certs /home/cloak/pki/client_ca.pem
-crl-verify /home/cloak/pki/crls.pem
+# We keep all of our certificates and CRLs in /etc/encryptme/pki/.
+key /etc/encryptme/pki/cloak.pem
+cert /etc/encryptme/pki/server.pem
+ca /etc/encryptme/pki/anchor.pem
+extra-certs /etc/encryptme/pki/client_ca.pem
+crl-verify /etc/encryptme/pki/crls.pem
 
 # You must also supply Diffie-Hellman parameters. We recommend generating your
 # own 2048-bit parameters.
-dh /home/cloak/pki/dh2048.pem
+dh /etc/encryptme/pki/dh2048.pem
 
 # Send DNS requests to a resolver listening on the gateway address. Anything
 # else leaves you open to DNS hijacking by malicious routers.

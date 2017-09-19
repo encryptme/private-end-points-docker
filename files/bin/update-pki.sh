@@ -1,5 +1,5 @@
 #!/bin/sh
 
-/home/cloak/bin/cloak-server --quiet pki \
-    --out /home/cloak/pki \
-    --post-hook "sudo service openvpn restart; sudo ipsec reload"
+cloak-server --quiet pki \
+    --out /etc/encryptme/pki \
+    --post-hook "service openvpn restart; ipsec reload"

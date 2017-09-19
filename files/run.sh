@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This script handles node registration and application startup
+
 set -eo pipefail
 IFS=$'\n\t'
 
@@ -32,7 +34,7 @@ elif [ ! -w "$ENCRYPTME_DIR" ]; then
     echo "ENCRYPTME_DIR '$ENCRYPTME_DIR' must be writable" >&2
     exit 2
 fi
-mkdir -p "$ENCRYPTME_PKI_DIR"
+mkdir -p "$ENCRYPTME_PKI_DIR"/crls
 if [ ! -d "$ENCRYPTME_PKI_DIR" ]; then
     echo "ENCRYPTME_PKI_DIR '$ENCRYPTME_PKI_DIR' did not exist and count not be created" >&2
     exit 3
@@ -110,9 +112,8 @@ rundaemon () {
 
 # Start services
 # TODO Supervisord?
-rundaemon rsyslogd
 rundaemon cron
-rundaemon unbound
+rundaemon unbound -d &
 
 # Ensure networking is setup properly
 sysctl -w net.ipv4.ip_forward=1
@@ -135,7 +136,10 @@ while [ ! -z "$conf" ]; do
     echo "$conf" > /tmp/openvpn.$n.json
     /bin/template.py -d /tmp/openvpn.$n.json -s /etc/openvpn/openvpn.conf.j2 -o /etc/openvpn/server-$n.conf
     echo "Started OpenVPN instance #$n"
-    /usr/sbin/openvpn --daemon ovpn-encryptme-$n --status /run/openvpn/encryptme-$n.status 10 --cd /etc/openvpn --script-security 2 --config /etc/openvpn/encryptme-$n.conf --writepid /run/openvpn/encryptme-$n.pid &
+    mkdir -p /var/run/openvpn
+    rundaemon /usr/sbin/openvpn --status /var/run/openvpn/server-$n.status 10 \
+                         --cd /etc/openvpn --script-security 2 --config /etc/openvpn/server-$n.conf \
+                         --writepid /var/run/openvpn/server-$n.pid &
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
 done

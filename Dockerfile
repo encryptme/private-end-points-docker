@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 RUN apt-get update && \
     apt-get install -y python python-pip git && \
     apt-get install -y unbound cron openvpn strongswan && \
-    apt-get install -y knot-dnsutils rsyslog jq && \
+    apt-get install -y knot-dnsutils jq && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip && \
