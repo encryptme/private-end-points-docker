@@ -45,20 +45,8 @@ Then set it to run on it's own afterwards:
 
 - Determine whether to add 10.x.x.x rule and -j REJECT
 
-- Integrate Letsencrypt (including ipsec.conf)
-- Use supervisord
-- Make update-pki.sh use supervisor restarts
-- Autorenew letsencrypt
-
-
-TODO: Investigate warnings from container on a virgin Digital ocean VM
-
-no netkey IPsec stack detected
-ipsec_starter[42]: no netkey IPsec stack detected
-
-no KLIPS IPsec stack detected
-ipsec_starter[42]: no KLIPS IPsec stack detected
-
-no known IPsec stack detected, ignoring!
-ipsec_starter[42]: no known IPsec stack detected, ignoring!
+- Autorenew letsencrypt (Cron job)
+- Resolve CRL issue for OpenVPN
+Thu Sep 21 02:15:57 2017 99.239.45.228:40803 CRL: CRL /etc/encryptme/pki/crls.pem is from a different issuer than the issuer of certificate O=Cloak, OU=Teams, CN=Toybox - toybox Clients
+- Fix non-working StrongSWAN
 
