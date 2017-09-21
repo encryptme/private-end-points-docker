@@ -64,13 +64,10 @@ if [ ! -f "$ENCRYPTME_CONF" ]; then
             missing="$missing $var"
         else
             arg_var_name="opt_$var"
-            echo "$@"
-            set "$@" "${!arg_var_name}" "$value"
-            echo "$@"
+            set - "$@" "${!arg_var_name}" "$value"
         fi
     done
     shift
-    echo "$@"
 
     if [ ! -t 1 -a ! -z "$missing" ]; then
         echo "Not on a TTY and missing env vars:$missing" >&2
@@ -84,7 +81,7 @@ if [ ! -f "$ENCRYPTME_CONF" ]; then
         echo "Registration failed"
         exit 4
     fi
-    set ""
+    set -
     shift
 fi
 
@@ -142,18 +139,17 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
     fi
 
     primary_fqdn="$(head -1 /tmp/fqdns)"
-    set --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
-    cat /tmp/fqdns | while read fqdn; do
-        set "$@" "-d" "$fqdn"
-    done
-    set "$@" --expand --standalone --standalone-supported-challenges http-01
+    set - --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
+    set - "$@" $(cat /tmp/fqdns | while read fqdn; do printf -- '-d %q' "$fqdn"; done)
+    set - "$@" --expand --standalone --standalone-supported-challenges http-01
 
     # Perform letsencrypt
-    /sbin/iptables -I INPUT 5 -p tcp --dport http -j ACCEPT
+    /sbin/iptables -A INPUT -p tcp --dport http -j ACCEPT
     if [ ! -f "/etc/letsencrypt/live/$primary_fqdn/fullchain.pem" ]; then
-        echo "Getting certificate for $(cat /etc/fqdns)"
+        echo "Getting certificate for $(cat /tmp/fqdns)"
+        echo "Letsencrypt arguments: " "$@"
         letsencrypt "$@"
-        set "--"
+        set -
     else
         letsencrypt renew
     fi
@@ -168,14 +164,24 @@ rundaemon () {
 }
 
 # Start services
-# TODO Supervisord?
 rundaemon cron
 rundaemon unbound -d &
+
+# Silence warning
+chmod 700 /etc/encryptme/pki/cloak.pem
 
 # Ensure networking is setup properly
 sysctl -w net.ipv4.ip_forward=1
 
+# Host needs various modules loaded..
+for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
+    ip_tunnel tunnel tunnel6 xfrm4_mode_tunnel xfrm6_mode_tunnel \
+    pcrypt xfrm_ipcomp deflate; do
+        modprobe $mod;
+done
+
 /bin/template.py -d /tmp/server.json -s /etc/iptables.rules.j2 -o /etc/iptables.rules
+# TODO this leaves extra rules around
 /sbin/iptables-restore --noflush < /etc/iptables.rules
 
 
