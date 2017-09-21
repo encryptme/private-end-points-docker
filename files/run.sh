@@ -141,6 +141,9 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
     primary_fqdn="$(head -1 /tmp/fqdns)"
     set - --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
     set - "$@" $(cat /tmp/fqdns | while read fqdn; do printf -- '-d %q' "$fqdn"; done)
+    if [ ! -z "$LETSENCRYPT_STAGING" ]; then
+        set - "$@" --staging
+    fi
     set - "$@" --expand --standalone --standalone-supported-challenges http-01
 
     # Perform letsencrypt
