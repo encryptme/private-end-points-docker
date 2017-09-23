@@ -94,6 +94,15 @@ if [ ! -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
         --format pem --post-hook "cat $ENCRYPTME_PKI_DIR/crls/*.pem > $ENCRYPTME_PKI_DIR/crls.pem"
 fi
 
+# Symlink certificates and keys to ipsec.d directory
+if [ -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
+    ln -s "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/server.pem" "/etc/ipsec.d/certs/cloak.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/ipsec.d/private/cloak.pem"
+fi
+
 if [ ! -f "$ENCRYPTME_PKI_DIR/dh2048.pem" ]; then
     echo "Generating DH Params"
     openssl dhparam -out "$ENCRYPTME_PKI_DIR/dh2048.pem" 2048
@@ -111,7 +120,8 @@ jq -r '.target.ikev2[].fqdn, .target.openvpn[].fqdn'  < /tmp/server.json | sort 
 
 # Test FQDNs match IPs on this system
 DNSOK=1
-cat /tmp/fqdns | while read hostname; do
+DNS=0.0.0.0
+while read hostname; do
     echo "Checking DNS for FQDN '$hostname'"
     DNS=`kdig +short A $hostname | egrep '^[0-9]+\.'`
     if [ ! -z "$DNS" ]; then
@@ -126,7 +136,7 @@ cat /tmp/fqdns | while read hostname; do
         echo "WARNING: $hostname does not resolve"
         DNSOK=0
     fi
-done
+done < <(cat /tmp/fqdns)
 
 
 # Perform letsencrypt if not disabled
@@ -183,7 +193,7 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
         modprobe $mod;
 done
 
-/bin/template.py -d /tmp/server.json -s /etc/iptables.rules.j2 -o /etc/iptables.rules
+/bin/template.py -d /tmp/server.json -s /etc/iptables.rules.j2 -o /etc/iptables.rules -v ipaddress=$DNS
 # TODO this leaves extra rules around
 /sbin/iptables-restore --noflush < /etc/iptables.rules
 

@@ -30,6 +30,14 @@
 # Everything else
 # -A INPUT -j REJECT
 -A INPUT -j ACCEPT
+
+#VPN traffic pass through
+-A FORWARD -s 10.137.0.0/16 -j ACCEPT
+-A FORWARD -d 10.137.0.0/16 -j ACCEPT
+COMMIT
+
+*nat
+-A POSTROUTING -s 10.137.0.0/16 -j SNAT --to-source {{ipaddress}} --random
 COMMIT
 
 # Isolate all private addresses. In particular, don't let users see each other.
