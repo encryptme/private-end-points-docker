@@ -96,11 +96,11 @@ fi
 
 # Symlink certificates and keys to ipsec.d directory
 if [ -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
-    ln -s "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/server.pem" "/etc/ipsec.d/certs/cloak.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/ipsec.d/private/cloak.pem"
+    ln -sf "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
+    ln -sf "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
+    ln -sf "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
+    ln -sf "$ENCRYPTME_PKI_DIR/server.pem" "/etc/ipsec.d/certs/cloak.pem"
+    ln -sf "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/ipsec.d/private/cloak.pem"
 fi
 
 if [ ! -f "$ENCRYPTME_PKI_DIR/dh2048.pem" ]; then

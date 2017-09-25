@@ -1,4 +1,3 @@
-
 # ENVIRONMENT VARIABLES
 
 | Variable | Notes |
@@ -8,36 +7,23 @@
 | ENCRYPTME_TARGET_ID | Encrypt.me target ID from Team console |
 | DISABLE_LETSENCRYPT| 1 = Disable automatic letsencrypt |
 
-Registration variables are only used during the first run, and only  if you wish to automate registration.
+Registration variables are only used during the first run, and only if you wish
+to automate registration.
 
-You can bootstrap interactively if you run with a tty:
+You can bootstrap interactively if you run with a tty: `./go.sh init`.
 
-    docker build -t encryptme .
-    docker run -it --rm \
-      -e ENCRYPTME_EMAIL=EMAILADDR \
-      -v `pwd`/runconf:/etc/encryptme \
-      -v `pwd`/runconf/letsencrypt:/etc/letsencrypt \
-      --privileged \
-      --net host \
-      encryptme
+Then set it to run on it's own afterwards: `./go.sh run`.
 
-Then set it to run on it's own afterwards:
-
-    docker run -d --name encyptme \
-      -v `pwd`/runconf:/etc/encryptme \
-      -v `pwd`/runconf/letsencrypt:/etc/letsencrypt \
-      --privileged \
-      --net host \
-      --restart always \
-      encryptme
+You will be prompted for your Encrypt.me email address unless it is exported as
+an environmental variable (e.g. `ENCRYPTME_EMAIL=you@example.com ./go.sh init`.
 
 
 # MOUNTPOINTS
 
   /etc/encyptme
 
-  Location where config, certs, keys are stored.  These need to be kept
-  across container restarts.
+  Location where config, certs, keys are stored.  These need to be kept across
+  container restarts.
 
 
 ### TODO:
