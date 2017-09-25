@@ -1,4 +1,3 @@
-
 # ENVIRONMENT VARIABLES
 
 | Variable | Notes |
@@ -12,20 +11,22 @@ Registration variables are only used during the first run, and only  if you wish
 
 You can bootstrap interactively if you run with a tty:
 
-    docker build -t encryptme .
     docker run -it --rm \
-      -e ENCRYPTME_EMAIL=EMAILADDR \
+      -e ENCRYPTME_EMAIL=you@example.com \
       -v `pwd`/runconf:/etc/encryptme \
       -v `pwd`/runconf/letsencrypt:/etc/letsencrypt \
+      -v /lib/modules:/lib/modules \
       --privileged \
       --net host \
       encryptme
 
 Then set it to run on it's own afterwards:
 
-    docker run -d --name encyptme \
+    docker run -d --name encryptme \
+      -e ENCRYPTME_EMAIL=you@example.com \
       -v `pwd`/runconf:/etc/encryptme \
       -v `pwd`/runconf/letsencrypt:/etc/letsencrypt \
+      -v /lib/modules:/lib/modules \
       --privileged \
       --net host \
       --restart always \
