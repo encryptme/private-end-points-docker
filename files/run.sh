@@ -175,8 +175,10 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
 fi
 
 rundaemon () {
-    echo "starting" "$@"
-    "$@"
+    if (( $(ps -ef | grep -v grep | grep $1 | wc -l) == 0 )); then
+        echo "starting" "$@"
+        "$@"
+    fi
 }
 
 # Start services
