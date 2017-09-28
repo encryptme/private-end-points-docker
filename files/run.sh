@@ -95,7 +95,7 @@ if [ ! -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
 fi
 
 # Symlink certificates and keys to ipsec.d directory
-if [ -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
+if [ ! -L "/etc/ipsec.d/certs/cloak.pem" ]; then
     ln -s "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
     ln -s "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
     ln -s "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
@@ -121,6 +121,7 @@ jq -r '.target.ikev2[].fqdn, .target.openvpn[].fqdn'  < /tmp/server.json | sort 
 # Test FQDNs match IPs on this system
 DNSOK=1
 DNS=0.0.0.0
+EXTIP=`curl -s http://169.254.169.254/latest/meta-data/public-ipv4`
 while read hostname; do
     echo "Checking DNS for FQDN '$hostname'"
     DNS=`kdig +short A $hostname | egrep '^[0-9]+\.'`
@@ -128,6 +129,8 @@ while read hostname; do
         echo "Found IP '$DNS' for $hostname"
         if ip addr show | grep "$DNS" > /dev/null; then
             echo "Looks good: Found IP '$DNS' on local system"
+        elif [ "$DNS" == "$EXTIP" ]; then
+            echo "Looks good: '$DNS' matches with external IP of `hostname`"
         else
             DNSOK=0
             echo "WARNING: Could not find '$DNS' on the local system.  DNS mismatch?"
