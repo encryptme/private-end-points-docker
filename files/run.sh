@@ -221,7 +221,8 @@ while [ ! -z "$conf" ]; do
     mkdir -p /var/run/openvpn
     rundaemon /usr/sbin/openvpn --status /var/run/openvpn/server-$n.status 10 \
                          --cd /etc/openvpn --script-security 2 --config /etc/openvpn/server-$n.conf \
-                         --writepid /var/run/openvpn/server-$n.pid &
+                         --writepid /var/run/openvpn/server-$n.pid \ 
+                         --management /var/run/var/run/server-$n.sock unix &
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
 done
