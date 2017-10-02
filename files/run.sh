@@ -95,12 +95,12 @@ if [ ! -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
 fi
 
 # Symlink certificates and keys to ipsec.d directory
-if [ -f "${ENCRYPTME_PKI_DIR}/cloak.pem" ]; then
-    ln -sf "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
-    ln -sf "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
-    ln -sf "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
-    ln -sf "$ENCRYPTME_PKI_DIR/server.pem" "/etc/ipsec.d/certs/cloak.pem"
-    ln -sf "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/ipsec.d/private/cloak.pem"
+if [ ! -L "/etc/ipsec.d/certs/cloak.pem" ]; then
+    ln -s "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/server.pem" "/etc/ipsec.d/certs/cloak.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/ipsec.d/private/cloak.pem"
 fi
 
 if [ ! -f "$ENCRYPTME_PKI_DIR/dh2048.pem" ]; then
@@ -121,6 +121,7 @@ jq -r '.target.ikev2[].fqdn, .target.openvpn[].fqdn'  < /tmp/server.json | sort 
 # Test FQDNs match IPs on this system
 DNSOK=1
 DNS=0.0.0.0
+EXTIP=`curl -s http://169.254.169.254/latest/meta-data/public-ipv4`
 while read hostname; do
     echo "Checking DNS for FQDN '$hostname'"
     DNS=`kdig +short A $hostname | egrep '^[0-9]+\.'`
@@ -128,6 +129,8 @@ while read hostname; do
         echo "Found IP '$DNS' for $hostname"
         if ip addr show | grep "$DNS" > /dev/null; then
             echo "Looks good: Found IP '$DNS' on local system"
+        elif [ "$DNS" == "$EXTIP" ]; then
+            echo "Looks good: '$DNS' matches with external IP of `hostname`"
         else
             DNSOK=0
             echo "WARNING: Could not find '$DNS' on the local system.  DNS mismatch?"
@@ -172,8 +175,10 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
 fi
 
 rundaemon () {
-    echo "starting" "$@"
-    "$@"
+    if (( $(ps -ef | grep -v grep | grep $1 | wc -l) == 0 )); then
+        echo "starting" "$@"
+        "$@"
+    fi
 }
 
 # Start services
@@ -214,9 +219,11 @@ while [ ! -z "$conf" ]; do
     /bin/template.py -d /tmp/openvpn.$n.json -s /etc/openvpn/openvpn.conf.j2 -o /etc/openvpn/server-$n.conf
     echo "Started OpenVPN instance #$n"
     mkdir -p /var/run/openvpn
+    mkfifo /var/run/openvpn/server-0.sock
     rundaemon /usr/sbin/openvpn --status /var/run/openvpn/server-$n.status 10 \
                          --cd /etc/openvpn --script-security 2 --config /etc/openvpn/server-$n.conf \
-                         --writepid /var/run/openvpn/server-$n.pid &
+                         --writepid /var/run/openvpn/server-$n.pid \
+                         --management /var/run/openvpn/server-$n.sock unix &
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
 done

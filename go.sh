@@ -25,8 +25,8 @@ image_id=$(docker images -q "$image")
 [ "$action" = "init" ] && {
     docker run -it --rm \
         -e ENCRYPTME_EMAIL="$email" \
-        -v `pwd`/runconf:/etc/encryptme \
-        -v `pwd`/runconf/letsencrypt:/etc/letsencrypt \
+        -v "$PWD/runconf:/etc/encryptme" \
+        -v "$PWD/runconf/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
         --net host \
@@ -35,8 +35,8 @@ image_id=$(docker images -q "$image")
 [ "$action" = "run" ] && {
     docker run -d --name "$image" \
         -e ENCRYPTME_EMAIL="$email" \
-        -v `pwd`/runconf:/etc/encryptme \
-        -v `pwd`/runconf/letsencrypt:/etc/letsencrypt \
+        -v "$PWD/runconf:/etc/encryptme" \
+        -v "$PWD/runconf/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
         --net host \
