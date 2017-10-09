@@ -7,7 +7,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip && \
-    pip install git+https://github.com/encryptme/cloak-server.git jinja2
+    pip install git+https://github.com/encryptme/private-end-points jinja2
 
 ENV DISABLE_LETSENCRYPT 0
 
