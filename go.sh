@@ -146,7 +146,8 @@ run_remote() {
 docker_cleanup() {
     local container="$1"
     local running=$(cmd docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null)
-    rem "Container '$container' has running=$running" [ $restart -eq 1 -a "$running" = "true" ] &&
+    rem "Container '$container' has running=$running" 
+    [ $restart -eq 1 -a "$running" = "true" ] &&
         (cmd docker kill "$container" ||
             fail "Failed to kill running container $container")
     [ $restart -eq 1 -a ! -z "$running" ] &&
@@ -209,6 +210,7 @@ server_run() {
         --privileged \
         --net host \
         --restart always \
+        -v /dev/log:/dev/log \
         "$eme_img"
 }
 
