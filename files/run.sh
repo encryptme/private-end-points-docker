@@ -168,11 +168,12 @@ jq -r '.target.ikev2[].fqdn, .target.openvpn[].fqdn' \
     < "$ENCRYPTME_DATA_DIR/server.json" \
     | sort -u > "$ENCRYPTME_DATA_DIR/fqdns"
 FQDNS=$(cat "$ENCRYPTME_DATA_DIR/fqdns") || fail "Failed to fetch FQDNS"
-FQDN=${x%% *}
+FQDN=${FQDNS%% *}
 
 
 # Test FQDNs match IPs on this system
 # TODO: ensure this to be reliable on DO and AWS
+# TODO: Note this is only valid for AWS http://169.254.169.254 is at Amazon
 DNSOK=1
 DNS=0.0.0.0
 if [ $ENCRYPTME_DNS_CHECK -ne 0 ]; then
