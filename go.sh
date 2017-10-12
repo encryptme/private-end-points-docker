@@ -8,7 +8,9 @@
 
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
+SCRIPT_PATH="$0"
 
+# dynamic params
 [ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
 user_email=
 user_pass=
@@ -24,20 +26,26 @@ dryrun=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
-docker_img="royhooper/encryptme-server"  # TODO: finalize w/ Encryptme hub account
+eme_img="royhooper/encryptme-server"  # TODO: finalize w/ Encryptme hub account
 stats_img="royhooper/encryptme-stats"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
 name="encryptme"
 
+# hard-coded
+wt_image_name="watchtower"
+stats_image_name="encryptme-stats"
+
 
 usage() {
     cat << EOF
-usage: $0 ACTION [ACTION ARGS]
+usage: $0 [--remote|-r HOST] [ACTION ARGS] ACTION
 
   Initialize an Encrypt.me private-end point server from a Docker image. Run
   './go.sh init' and then './go.sh run' to set everything up. Any missing
   parameters (email, pass, target for init; email only for run) will be
   prompted for if missing.
+
+  If running with --remote it must be used as the first argument.
 
 
 ACTIONS:
@@ -49,13 +57,12 @@ ACTIONS:
 
 
 GENERIC OPTIONS:
-    --remote hostname     SSH to this [user@]hostname and run this scrip there
     -c|--conf-dir DIR     Directory to use/create for private configs/certs
     -d|--dryrun|--dry-run Run without making changes
                           (default: $conf_dir)
     -e|--email            Your Encrypt.me email address (for certs/API auth)
     -h|--help             Show this message
-    -i|--image IMAGE      Docker image to use (default: $docker_img)
+    -i|--image IMAGE      Docker image to use (default: $eme_img)
     -n|--name NAME        Container name (default: $name)
     -D|--dns-check        Attempt to do AWS/DO DNS validation
     -t|--cert-type TYPE   Certificate type to use e.g. 'letsencypt', 'comodo' (default: $cert_type)
@@ -125,15 +132,26 @@ collect_args() {
     }
 }
 
+run_remote() {
+    local remote_host="$1"
+    shift
+    scp -q "$SCRIPT_PATH" "$remote_host":go.sh \
+        || fail "Couldn't copy script to $remote_host"
+    ssh -qt "$remote_host" ./go.sh "$@" \
+        || fail "Remote on $remote_host execution failed"
+    ssh -q "$remote_host" rm go.sh \
+        || fail "Failed to remove go.sh from $remote_host"
+}
+
 docker_cleanup() {
-    running=$(cmd docker inspect --format='{{.State.Running}}' "$1" 2>/dev/null)
-    rem "Container '$1' has running=$running"
-    [ $restart -eq 1 -a "$running" = "true" ] &&
-        (docker kill "$1" ||
-            fail "Failed to kill running container $1")
+    local container="$1"
+    local running=$(cmd docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null)
+    rem "Container '$container' has running=$running" [ $restart -eq 1 -a "$running" = "true" ] &&
+        (cmd docker kill "$container" ||
+            fail "Failed to kill running container $container")
     [ $restart -eq 1 -a ! -z "$running" ] &&
-        (docker rm "$1" ||
-            fail "Failed to remove container $1")
+        (cmd docker rm "$container" ||
+            fail "Failed to remove container $container")
 }
 
 server_init() {
@@ -152,13 +170,13 @@ server_init() {
         -v /lib/modules:/lib/modules \
         --privileged \
         --net host \
-        "$docker_img"
+        "$eme_img"
 }
 
 server_watch() {
-    docker_cleanup "watchtower"
+    docker_cleanup "$wt_image_name"
     cmd docker run -d \
-       --name watchtower \
+       --name "$wt_image_name" \
        -v /var/run/docker.sock:/var/run/docker.sock \
         --restart always \
        "$wt_image"
@@ -166,9 +184,9 @@ server_watch() {
 
 
 server_stats() {
-    docker_cleanup "encryptme-stats"
+    docker_cleanup "$stats_image_name"
     cmd docker run -d \
-        --name encryptme-stats \
+        --name "$stats_image_name" \
         -v /proc:/hostfs/proc:ro \
         -v /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro \
         -v /:/hostfs:ro \
@@ -191,25 +209,29 @@ server_run() {
         --privileged \
         --net host \
         --restart always \
-        "$docker_img"
+        "$eme_img"
 }
 
 server_reset() {
     docker_cleanup "$name"
-    docker_cleanup "$wt_image"
-    docker_cleanup "$stats_img"
+    docker_cleanup "$wt_image_name"
+    docker_cleanup "$stats_image_name"
     cmd rm -rf "$conf_dir"
 }
 
 server_cleanup() {
     server_reset
-    cmd docker rmi "$docker_img"
+    cmd docker rmi "$eme_img"
     cmd docker rmi "$wt_image"
     cmd docker rmi "$stats_img"
 }
 
 
+#echo " -- Running $SCRIPT_NAME on $HOSTNAME (PID: $$); dryrun=$dryrun" >&2
+#echo " -- ARGS: $@" >&2
+
 # gather up args
+arg_count=0
 while [ $# -gt 0 ]; do
     arg="$1"
     shift
@@ -228,7 +250,7 @@ while [ $# -gt 0 ]; do
             ;;
         --image|-i)
             [ $# -ge 1 ] || fail "Missing arg to --image|-i"
-            docker_img="$1"
+            eme_img="$1"
             shift
             ;;
         --email|-e)
@@ -279,16 +301,13 @@ while [ $# -gt 0 ]; do
         --verbose|-v)
             verbose=1
             ;;
-        --remote)
+        --remote|-r)
+            [ $arg_count -ne 0 ] && fail "If using --remote|-r it must be the first argument"
+            [ $# -ge 1 ] || fail "Missing arg to --remote|-r"
             remote_host="$1"
             shift
-            scp -q "$0" "$remote_host":go.sh \
-                || fail "Couldn't copy script to $remote_host"
-            ssh -qt "$remote_host" ./go.sh "$@" \
-                || fail "Remote on $remote_host execution failed"
-            ssh -q "$remote_host" rm go.sh \
-                || fail "Failed to remove go.sh from $remote_host"
-            exit
+            run_remote "$remote_host" "$@"
+            exit $?
             ;;
         --restart)
             restart=1
@@ -298,13 +317,13 @@ while [ $# -gt 0 ]; do
             action="$arg"
             ;;
     esac
+    let arg_count+=1
 done
 
 
 # setup for run
 # --------------------------------------------------
 # a few sanity checks
-[ $dryrun -eq 1 ] && echo "# DRY-RUN" >&2
 cmd which docker > /dev/null || fail "Docker is not installed"
 case "$action" in
     init|run|clean|reset)
@@ -318,23 +337,24 @@ esac
 # init/run pre-tasks
 [ "$action" = 'init' -o "$action" = 'run' ] && {
     # the images exist? auto-pull latest if using the official image
-    rem "pulling '$docker_img' from Docker Hub"
     [ $pull_image -eq 1 ] && {
-        cmd docker pull "$docker_img" \
-            || fail "Failed to pull '$docker_img' from Docker Hub"
+        rem "pulling '$eme_img' from Docker Hub"
+        cmd docker pull "$eme_img" \
+            || fail "Failed to pull Encrypt.me client image '$eme_img' from Docker Hub"
     }
     # now do all image images we need exist?
-    docker_img_id=$(cmd docker images -q "$docker_img")
-    [ -n "$docker_img_id" ] \
-        || fail "No docker image named '$docker_img' found; either build the image or use --pull-image to pull the image from Docker Hub"
+    eme_img_id=$(cmd docker images -q "$eme_img")
+    [ -n "$eme_img_id" ] \
+        || fail "No docker image named '$eme_img' found; either build the image or use --pull-image to pull the image from Docker Hub"
 
-    [ $pull_image -eq 1 -a $auto_update -eq 1 ] \
-        && cmd docker pull "$wt_image" \
-            || fail "Failed to pull '$wt_image' from Docker Hub"
-
-    [ $pull_image -eq 1 -a $send_stats -eq 1 ] \
-        && cmd docker pull "$stats_img" \
-            || fail "Failed to pull '$stats_img' from Docker Hub"
+    [ $pull_image -eq 1 -a $auto_update -eq 1 ] && {
+        cmd docker pull "$wt_image" \
+            || fail "Failed to pull WatchTower image '$wt_image' from Docker Hub"
+    }
+    [ $pull_image -eq 1 -a $send_stats -eq 1 ] && {
+        cmd docker pull "$stats_img" \
+            || fail "Failed to pull Encrypt.me Stats image '$stats_img' from Docker Hub"
+    }
 
     # get auth/server info if needed
     rem "interactively collecting any required missing params"
