@@ -160,6 +160,7 @@ server_watch() {
     cmd docker run -d \
        --name watchtower \
        -v /var/run/docker.sock:/var/run/docker.sock \
+        --restart always \
        "$wt_image"
 }
 
@@ -174,6 +175,7 @@ server_stats() {
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$conf_dir:/etc/encryptme" \
         --net host \
+        --restart always \
         "$stats_img"
 }
 

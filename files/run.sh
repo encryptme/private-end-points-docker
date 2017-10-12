@@ -277,12 +277,13 @@ conf="$(get_openvpn_conf $n)"
 while [ ! -z "$conf" ]; do
     echo "$conf" > "$ENCRYPTME_DATA_DIR/openvpn.$n.json"
     /bin/template.py \
-        -d /tmp/openvpn.$n.json \
+        -d "$ENCRYPTME_DATA_DIR/openvpn.$n.json" \
         -s /etc/openvpn/openvpn.conf.j2 \
         -o /etc/openvpn/server-$n.conf
     rem "Started OpenVPN instance #$n"
     mkdir -p /var/run/openvpn
-    mkfifo /var/run/openvpn/server-0.sock
+    test -e /var/run/openvpn/server-0.sock || \
+        mkfifo /var/run/openvpn/server-0.sock
     rundaemon /usr/sbin/openvpn \
         --status /var/run/openvpn/server-$n.status 10 \
          --cd /etc/openvpn \
