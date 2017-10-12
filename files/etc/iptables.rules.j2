@@ -28,7 +28,7 @@
 
 # TODO Verify these two rules
 # Everything else
-# -A INPUT -j REJECT
+# -A INPUT -j REJECT  # TODO << ME
 -A INPUT -j ACCEPT
 
 #VPN traffic pass through
@@ -37,8 +37,9 @@
 COMMIT
 
 *nat
--A POSTROUTING -s 10.137.0.0/16 -j SNAT --to-source {{ipaddress}} --random
+-A POSTROUTING -s 10.137.0.0/16 -j SNAT --to-source {{ip}} --random
 COMMIT
 
 # Isolate all private addresses. In particular, don't let users see each other.
+# TODO This rule???
 # -A FORWARD -s 10.0.0.0/8 -d 10.0.0.0/8 -j DROP
