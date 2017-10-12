@@ -21,7 +21,6 @@ send_stats=0
 api_url=
 dns_check=0
 dryrun=0
-retry=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
@@ -66,7 +65,6 @@ INIT OPTIONS:
     --server-name FQDN    Fully-qualified domain name for this VPN end-point
     --target-id ID        Target ID for end-point in Encrypt.me UI
     --user-pass PASS      Your Encrypt.me password
-    --retry               Retry with an existing container
     --api-url URL         Use custom URL for Encrypt.me server API
 
 RUN OPTIONS:
