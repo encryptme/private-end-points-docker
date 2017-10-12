@@ -1,4 +1,5 @@
 FROM ubuntu:16.04
+ARG pep_repo=${pep_repo:-git+https://github.com/encryptme/private-end-points.git}
 
 RUN apt-get update && \
     apt-get install -y python python-pip git && \
@@ -7,7 +8,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip && \
-    pip install git+https://github.com/encryptme/cloak-server.git jinja2
+    pip install "$pep_repo" jinja2
 
 ENV DISABLE_LETSENCRYPT 0
 
