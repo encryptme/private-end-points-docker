@@ -173,10 +173,12 @@ server_init() {
         -v /dev/log:/dev/log \
         --net host \
         "$eme_img"
+        # TODO verify if we need to remove /dev/log from production containers
+        # It may leak IP addresses even with loglevels set to -1
 
     if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
         rem Removing /etc/apparmor.d/usr.lib.ipsec.charon
-        # TODO we should install a beter charon apparmor
+        # TODO we should install a beter charon/stroke apparmor config
         rm -f /etc/apparmor.d/usr.lib.ipsec.charon
         rm -f /etc/apparmor.d/usr.lib.ipsec.stroke
         systemctl reload apparmor
