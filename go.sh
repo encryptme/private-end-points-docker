@@ -170,8 +170,19 @@ server_init() {
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
+        -v /dev/log:/dev/log \
         --net host \
         "$eme_img"
+
+    if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
+        rem Removing /etc/apparmor.d/usr.lib.ipsec.charon
+        # TODO we should install a beter charon apparmor
+        rm -f /etc/apparmor.d/usr.lib.ipsec.charon
+        rm -f /etc/apparmor.d/usr.lib.ipsec.stroke
+        systemctl reload apparmor
+        aa-remove-unknown
+    fi
+
 }
 
 server_watch() {

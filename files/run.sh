@@ -63,7 +63,6 @@ fi
 cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
 
-
 # Run an configured Encrypt.me private end-point server (must have run 'config' first)
 
 set -eo pipefail
