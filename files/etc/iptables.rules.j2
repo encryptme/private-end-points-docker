@@ -1,44 +1,81 @@
 # vim:ft=ipfilter
 
+
 *filter
+-F
+
+#Docker
+:INPUT ACCEPT [53:3312]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [38:6200]
+:DOCKER - [0:0]
+:DOCKER-ISOLATION - [0:0]
+:DOCKER-USER - [0:0]
+
+-A FORWARD -j DOCKER-USER
+-A FORWARD -j DOCKER-ISOLATION
+-A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -o docker0 -j DOCKER
+-A FORWARD -i docker0 ! -o docker0 -j ACCEPT
+-A FORWARD -i docker0 -o docker0 -j ACCEPT
+-A DOCKER-ISOLATION -j RETURN
+-A DOCKER-USER -j RETURN
+
+#ENCRYPTME
+:ENCRYPTME - [0:0]
+-A INPUT -j ENCRYPTME
+
 
 # Allow all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0.
--A INPUT -i lo -j ACCEPT
--A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
-
--A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
--A INPUT -p icmp -j ACCEPT
+-A ENCRYPTME -i lo -j ACCEPT
+-A ENCRYPTME -d 127.0.0.0/8 ! -i lo -j REJECT --reject-with icmp-port-unreachable
+-A ENCRYPTME -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A ENCRYPTME -p icmp -j ACCEPT
 
 # SSH
--A INPUT -p tcp --dport ssh -j ACCEPT
+-A ENCRYPTME -p tcp -m tcp --dport 22 -j ACCEPT
 
 # OpenVPN
 {% for config in cloak_server.target.openvpn %}
--A INPUT -p {{config.proto}} --dport {{config.port}} -j ACCEPT
+-A ENCRYPTME -p {{config.proto}} --dport {{config.port}} -j ACCEPT
 {% endfor %}
 
-# IPsec, isakmp, NAT-T
--A INPUT -p 50 -j ACCEPT
--A INPUT -p udp --dport 500 -j ACCEPT
--A INPUT -p udp --dport 4500 -j ACCEPT
+# IPsec, isakmp
+-A ENCRYPTME -p udp -m udp --dport 500 -j ACCEPT
+-A ENCRYPTME -p udp -m udp --dport 4500 -j ACCEPT
 
 # DNS through the tunnel
--A INPUT -s 10.137.0.0/16 -p udp --dport domain -j ACCEPT
--A INPUT -s 10.137.0.0/16 -p tcp --dport domain -j ACCEPT
+-A ENCRYPTME -s 10.137.0.0/16 -p udp -m udp --dport 53 -j ACCEPT
+-A ENCRYPTME -s 10.137.0.0/16 -p tcp -m tcp --dport 53 -j ACCEPT
 
-# TODO Verify these two rules
-# Everything else
-# -A INPUT -j REJECT
--A INPUT -j ACCEPT
+#Allow in/out from VPN network
+-A ENCRYPTME -s 10.137.0.0/16 -j ACCEPT
+-A ENCRYPTME -d 10.137.0.0/16 -j ACCEPT
 
 #VPN traffic pass through
--A FORWARD -s 10.137.0.0/16 -j ACCEPT
--A FORWARD -d 10.137.0.0/16 -j ACCEPT
+-A FORWARD -s 10.137.0.0/16 -j ENCRYPTME
+-A FORWARD -d 10.137.0.0/16 -j ENCRYPTME
 COMMIT
 
 *nat
--A POSTROUTING -s 10.137.0.0/16 -j SNAT --to-source {{ipaddress}} --random
+-F
+#Docker
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+:DOCKER - [0:0]
+
+#Docker
+-A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+-A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
+-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+-A DOCKER -i docker0 -j RETURN
+
+#ENCRYPTME
+:ENCRYPTME-NAT - [0:0]
+-A ENCRYPTME-NAT -s 10.137.0.0/16 -j SNAT --to-source {{ip}} --random
+-A POSTROUTING -s 10.137.0.0/16 -j ENCRYPTME-NAT
 COMMIT
 
-# Isolate all private addresses. In particular, don't let users see each other.
-# -A FORWARD -s 10.0.0.0/8 -d 10.0.0.0/8 -j DROP
+#END

@@ -28,11 +28,7 @@ an environmental variable (e.g. `ENCRYPTME_EMAIL=you@example.com ./go.sh init`.
 
 ### TODO:
 
-
-- Determine whether to add 10.x.x.x rule and -j REJECT
-
 - Autorenew letsencrypt (Cron job)
 - Resolve CRL issue for OpenVPN
 Thu Sep 21 02:15:57 2017 99.239.45.228:40803 CRL: CRL /etc/encryptme/pki/crls.pem is from a different issuer than the issuer of certificate O=Cloak, OU=Teams, CN=Toybox - toybox Clients
 - Fix non-working StrongSWAN
-
