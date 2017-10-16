@@ -176,13 +176,14 @@ server_init() {
         # TODO verify if we need to remove /dev/log from production containers
         # It may leak IP addresses even with loglevels set to -1
 
+    # TODO: make more dynamic based on OS
     if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
         rem Removing /etc/apparmor.d/usr.lib.ipsec.charon
         # TODO we should install a beter charon/stroke apparmor config
-        rm -f /etc/apparmor.d/usr.lib.ipsec.charon
-        rm -f /etc/apparmor.d/usr.lib.ipsec.stroke
-        systemctl reload apparmor
-        aa-remove-unknown
+        cmd rm -f /etc/apparmor.d/usr.lib.ipsec.charon
+        cmd rm -f /etc/apparmor.d/usr.lib.ipsec.stroke
+        cmd systemctl reload apparmor
+        cmd aa-remove-unknown
     fi
 
 }
