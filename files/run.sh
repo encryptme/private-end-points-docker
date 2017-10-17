@@ -142,7 +142,11 @@ fi
 # ensure we have DH params generated
 if [ ! -f "$ENCRYPTME_PKI_DIR/dh2048.pem" ]; then
     rem "Generating DH Params"
-    openssl dhparam -out "$ENCRYPTME_PKI_DIR/dh2048.pem" 2048
+    if [ ! -f /etc/dh2048.pem ]; then
+        openssl dhparam -out "$ENCRYPTME_PKI_DIR/dh2048.pem" 2048
+    else
+        cp /etc/dh2048.pem "$ENCRYPTME_PKI_DIR/dh2048.pem"
+    fi
 fi
 
 
