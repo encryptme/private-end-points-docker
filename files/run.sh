@@ -209,7 +209,7 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
 
     set - --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
     set - "$@" $(for fqdn in $FQDNS; do printf -- '-d %q' "$fqdn"; done)
-    if [ ! -z "$LETSENCRYPT_STAGING" ]; then
+    if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         set - "$@" --staging
     fi
     set - "$@" --expand --standalone --standalone-supported-challenges http-01
