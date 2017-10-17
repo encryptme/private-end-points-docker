@@ -20,7 +20,7 @@ an environmental variable (e.g. `ENCRYPTME_EMAIL=you@example.com ./go.sh init`.
 
 # MOUNTPOINTS
 
-  /etc/encyptme
+  /etc/encryptme
 
   Location where config, certs, keys are stored.  These need to be kept across
   container restarts.
