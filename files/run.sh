@@ -6,7 +6,7 @@ SCRIPT_NAME=$(basename "$0")
 # main vars
 ENCRYPTME_DIR="${ENCRYPTME_DIR:-/etc/encryptme}"
 ENCRYPTME_API_URL="${ENCRYPTME_API_URL:-}"
-ENCRYPTME_CONF="${ENCRYPTME_DIR}/encyptme.conf"
+ENCRYPTME_CONF="${ENCRYPTME_DIR}/encryptme.conf"
 ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 ENCRYPTME_DATA_DIR="${ENCRYPTME_DATA_DIR:-$ENCRYPTME_DIR/data}"
 ENCRYPTME_DNS_CHECK=0
@@ -146,7 +146,11 @@ fi
 # ensure we have DH params generated
 if [ ! -f "$ENCRYPTME_PKI_DIR/dh2048.pem" ]; then
     rem "Generating DH Params"
-    openssl dhparam -out "$ENCRYPTME_PKI_DIR/dh2048.pem" 2048
+    if [ ! -f /etc/dh2048.pem ]; then
+        openssl dhparam -out "$ENCRYPTME_PKI_DIR/dh2048.pem" 2048
+    else
+        cp /etc/dh2048.pem "$ENCRYPTME_PKI_DIR/dh2048.pem"
+    fi
 fi
 
 
@@ -213,7 +217,7 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
 
     set - --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
     set - "$@" $(for fqdn in $FQDNS; do printf -- '-d %q' "$fqdn"; done)
-    if [ ! -z "$LETSENCRYPT_STAGING" ]; then
+    if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         set - "$@" --staging
     fi
     set - "$@" --expand --standalone --standalone-supported-challenges http-01

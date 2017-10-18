@@ -144,13 +144,18 @@ run_remote() {
 }
 
 docker_cleanup() {
+    local do_restart=$restart
+    if [ "$1" = "-f" ]; then
+        shift
+        do_restart=1
+    fi
     local container="$1"
     local running=$(cmd docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null)
     rem "Container '$container' has running=$running" 
-    [ $restart -eq 1 -a "$running" = "true" ] &&
+    [ $do_restart -eq 1 -a "$running" = "true" ] &&
         (cmd docker kill "$container" ||
             fail "Failed to kill running container $container")
-    [ $restart -eq 1 -a ! -z "$running" ] &&
+    [ $do_restart -eq 1 -a ! -z "$running" ] &&
         (cmd docker rm "$container" ||
             fail "Failed to remove container $container")
 }
@@ -229,9 +234,9 @@ server_run() {
 }
 
 server_reset() {
-    docker_cleanup "$name"
-    docker_cleanup "$wt_image_name"
-    docker_cleanup "$stats_image_name"
+    docker_cleanup -f "$name"
+    docker_cleanup -f "$wt_image_name"
+    docker_cleanup -f "$stats_image_name"
     cmd rm -rf "$conf_dir"
 }
 
