@@ -40,10 +40,14 @@ rundaemon () {
 
 encryptme_server() {
     local args=(--config $ENCRYPTME_CONF "$@")
+    local cont_ver=
     if [ -n "$ENCRYPTME_API_URL" ]; then
         args=(--base_url "$ENCRYPTME_API_URL" "${args[@]}")
     fi
-    cmd cloak-server "${args[@]}"
+    [ -f '/container-version-id' ] && {
+        cont_ver=$(</container-version-id)
+    }
+    CONTAINER_VERSION="$cont_ver" cmd cloak-server "${args[@]}"
 }
 
 

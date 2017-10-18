@@ -14,4 +14,6 @@ ENV DISABLE_LETSENCRYPT 0
 
 ADD files/ /
 
+RUN echo "v0.1" > /container-version-id
+
 ENTRYPOINT ["/run.sh"]
