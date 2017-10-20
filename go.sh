@@ -27,13 +27,12 @@ verbose=0
 restart=0
 cert_type="letsencrypt"
 eme_img="royhooper/encryptme-server"  # TODO: finalize w/ Encryptme hub account
-stats_img="royhooper/encryptme-stats"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
 name="encryptme"
+stats_server="https://stats.getcloakvpn.com"
 
 # hard-coded
 wt_image_name="watchtower"
-stats_image_name="encryptme-stats"
 
 
 usage() {
@@ -81,6 +80,7 @@ PRIVACY/SECURITY OPTIONS:
     -P|--pull-image       Pull Docker Hub image? (default: off)
     -U|--update           Run WatchTower to keep VPN container up-to-date (default: off)
     -S|--stats            Send generic bandwidth/health stats (default: off)
+    --stats-server        Specify an alternate http(s) server to receive stats
 
 
 EXAMPLES:
@@ -171,6 +171,8 @@ server_init() {
         -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_INIT_ONLY=1 \
         -e ENCRYPTME_DNS_CHECK=$dns_check \
+        -e ENCRYPTME_STATS=$send_stats \
+        -e ENCRYPTME_STATS_SERVER=$stats_server \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -202,29 +204,19 @@ server_watch() {
 }
 
 
-server_stats() {
-    docker_cleanup "$stats_image_name"
-    cmd docker run -d \
-        --name "$stats_image_name" \
-        -v /proc:/hostfs/proc:ro \
-        -v /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro \
-        -v /:/hostfs:ro \
-        -v /var/run/docker.sock:/var/run/docker.sock \
-        -v "$conf_dir:/etc/encryptme" \
-        --net host \
-        --restart always \
-        "$stats_img"
-}
-
 server_run() {
     docker_cleanup "$name"
     cmd docker run -d --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_DNS_CHECK=$dns_check \
+        -e ENCRYPTME_STATS=$send_stats \
+        -e ENCRYPTME_STATS_SERVER=$stats_server \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
+        -v /proc:/hostfs/proc:ro \
+        -v /var/run/docker.sock:/var/run/docker.sock \
         --privileged \
         --net host \
         --restart always \
@@ -235,7 +227,6 @@ server_run() {
 server_reset() {
     docker_cleanup -f "$name"
     docker_cleanup -f "$wt_image_name"
-    docker_cleanup -f "$stats_image_name"
     cmd rm -rf "$conf_dir"
 }
 
@@ -243,7 +234,6 @@ server_cleanup() {
     server_reset
     cmd docker rmi "$eme_img"
     cmd docker rmi "$wt_image"
-    cmd docker rmi "$stats_img"
 }
 
 
@@ -318,6 +308,10 @@ while [ $# -gt 0 ]; do
         --stats|-S)
             send_stats=1
             ;;
+        --stats-server)
+            stats_server="$1"
+            shift
+            ;;
         --verbose|-v)
             verbose=1
             ;;
@@ -371,10 +365,6 @@ esac
         cmd docker pull "$wt_image" \
             || fail "Failed to pull WatchTower image '$wt_image' from Docker Hub"
     }
-    [ $pull_image -eq 1 -a $send_stats -eq 1 ] && {
-        cmd docker pull "$stats_img" \
-            || fail "Failed to pull Encrypt.me Stats image '$stats_img' from Docker Hub"
-    }
 
     # get auth/server info if needed
     rem "interactively collecting any required missing params"
@@ -392,9 +382,6 @@ esac
 [ "$action" = "run" ] && {
     [ $auto_update -eq 1 ] && {
         server_watch || fail "Failed to start Docker watchtower"
-    }
-    [ $send_stats -eq 1 ] && {
-        server_stats || fail "Failed to start Docker encryptme-stats"
     }
     rem "starting $name container"
     server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
