@@ -10,7 +10,8 @@ RUN apt-get update && \
 RUN pip install --upgrade pip && \
     pip install "$pep_repo" jinja2
 
-RUN pip3 install git+https://gitlab.toybox.ca/krayola/encryptme-metrics.git
+ADD https://gitlab.toybox.ca/krayola/encryptme-metrics/repository/archive.zip?ref=master /tmp/encryptme-metrics.zip
+RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 
 ENV DISABLE_LETSENCRYPT 0
 
