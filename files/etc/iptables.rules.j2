@@ -1,13 +1,12 @@
 # vim:ft=ipfilter
 
-
 *filter
 -F
 
 #Docker
-:INPUT ACCEPT [53:3312]
-:FORWARD DROP [0:0]
-:OUTPUT ACCEPT [38:6200]
+:INPUT DROP
+:FORWARD DROP
+:OUTPUT ACCEPT
 :DOCKER - [0:0]
 :DOCKER-ISOLATION - [0:0]
 :DOCKER-USER - [0:0]
@@ -18,6 +17,8 @@
 -A FORWARD -o docker0 -j DOCKER
 -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
 -A FORWARD -i docker0 -o docker0 -j ACCEPT
+-A FORWARD -o tun+ -j ACCEPT
+-A FORWARD -i tun+ -j ACCEPT
 -A DOCKER-ISOLATION -j RETURN
 -A DOCKER-USER -j RETURN
 
@@ -25,11 +26,17 @@
 :ENCRYPTME - [0:0]
 -A INPUT -j ENCRYPTME
 
-
 # Allow all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0.
 -A ENCRYPTME -i lo -j ACCEPT
 -A ENCRYPTME -d 127.0.0.0/8 ! -i lo -j REJECT --reject-with icmp-port-unreachable
 -A ENCRYPTME -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# All TCP sessions should begin with SYN
+-A ENCRYPTME -p tcp ! --syn -m state --state NEW -s 0/0 -j DROP
+
+#Allow limitted inbound ICMP packets
+-I ENCRYPTME -p icmp --icmp-type echo-request -m recent --set
+-I ENCRYPTME -p icmp --icmp-type echo-request -m recent --update --seconds 5 --hitcount 10 -j DROP
 -A ENCRYPTME -p icmp -j ACCEPT
 
 # SSH
@@ -49,12 +56,12 @@
 -A ENCRYPTME -s 10.137.0.0/16 -p tcp -m tcp --dport 53 -j ACCEPT
 
 #Allow in/out from VPN network
--A ENCRYPTME -s 10.137.0.0/16 -j ACCEPT
 -A ENCRYPTME -d 10.137.0.0/16 -j ACCEPT
+-A ENCRYPTME -s 10.137.0.0/16 -j ACCEPT
 
 #VPN traffic pass through
--A FORWARD -s 10.137.0.0/16 -j ENCRYPTME
--A FORWARD -d 10.137.0.0/16 -j ENCRYPTME
+-A FORWARD -j ENCRYPTME
+#-A FORWARD -d 10.137.0.0/16 -j ENCRYPTME
 COMMIT
 
 *nat
@@ -79,3 +86,4 @@ COMMIT
 COMMIT
 
 #END
+

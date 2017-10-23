@@ -13,7 +13,8 @@ ENCRYPTME_DNS_CHECK=0
 DISABLE_LETSENCRYPT=0
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
-
+ENCRYPTME_STATS="${ENCRYPTME_STATS:-0}"
+ENCRYPTME_STATS_SERVER="${ENCRYPTME_STATS_SERVER:-https://stats.stats.getcloakvpn.com/}"
 
 # helpers
 fail() {
@@ -64,6 +65,10 @@ fi
 if [ -z "$ENCRYPTME_EMAIL" -a "$DISABLE_LETSENCRYPT" != 1 ]; then
     fail "ENCRYPTME_EMAIL must be set if DISABLE_LETSENCRYPT is not set" 4
 fi
+if [ "$ENNCRYPTME_STATS" = 1 -a -z "$ENCRYPME_STATS_SERVER" ]; then
+    fail "ENCRYPTME_STATS=1 but no ENCRYPME_STATS_SERVER"
+fi
+
 cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
 
@@ -325,6 +330,10 @@ rem "Configuring and starting strongSwan"
     rem "Init complete; run './go.sh run' to start"
     exit 0
 }
+
+[ $ENCRYPTME_STATS = 1 ] &&
+    rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER" &&
+    encryptme-stats --server "$ENCRYPTME_STATS_SERVER" &
 
 rem "Start-up complete"
 while true; do

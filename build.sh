@@ -17,6 +17,7 @@ OPTIONS:
     -h|--help             This information
     -r|--repo REPO        Custom private-end points repo
     -t|--tag TAG          Custom tag to use        
+    -f|--force            Force rebuild
 
 EXAMPLE:
 
@@ -26,6 +27,7 @@ EOI
 
 tag="encryptme"
 repo=""
+extra=""
 
 while [ $# -gt 0 ]; do
     arg="$1"
@@ -41,6 +43,9 @@ while [ $# -gt 0 ]; do
             repo="$1"
             shift
             ;;
+        --force|-f)
+            extra="--no-cache"
+            ;;
         --help|-h)
             usage
             exit
@@ -53,6 +58,6 @@ done
 
 which docker 2>&1 || fail "Failed to locate 'docker' binary"
 
-build_args=(-t "$tag" .)
+build_args=(-t "$tag" $extra .)
 [ -n "$repo" ] && build_args=(--build-arg pep_repo="$repo" "${build_args[@]}")
 docker build "${build_args[@]}"
