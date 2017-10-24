@@ -91,14 +91,12 @@ esac
 if [ -f "$ENCRYPTME_CONF" ]; then
     rem "Instance is already registered; skipping" >&2
 else
-    opt_ENCRYPTME_EMAIL=--email
-    opt_ENCRYPTME_PASSWORD=--password
-    opt_ENCRYPTME_TARGET_ID=--target
+    opt_ENCRYPTME_SLOT_KEY=--key
     opt_ENCRYPTME_SERVER_NAME=--name
     args=""
     missing=""
     set ""
-    for var in ENCRYPTME_EMAIL ENCRYPTME_PASSWORD ENCRYPTME_TARGET_ID \
+    for var in ENCRYPTME_SLOT_KEY \
                ENCRYPTME_SERVER_NAME; do
         value="${!var}"
         if [ -z "$value" ]; then

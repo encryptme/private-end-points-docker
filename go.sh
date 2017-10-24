@@ -13,9 +13,8 @@ SCRIPT_PATH="$0"
 # dynamic params
 [ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
 user_email=
-user_pass=
 server_name=
-target_id=
+slot_key=
 action=
 pull_image=0
 auto_update=0
@@ -23,6 +22,7 @@ send_stats=0
 api_url=
 dns_check=0
 dryrun=0
+non_interactive=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
@@ -41,7 +41,7 @@ usage: $0 [--remote|-r HOST] [ACTION ARGS] ACTION
 
   Initialize an Encrypt.me private-end point server from a Docker image. Run
   './go.sh init' and then './go.sh run' to set everything up. Any missing
-  parameters (email, pass, target for init; email only for run) will be
+  parameters (registration key and name for init; email only for run) will be
   prompted for if missing.
 
   If running with --remote it must be used as the first argument.
@@ -64,28 +64,32 @@ GENERIC OPTIONS:
     -i|--image IMAGE      Docker image to use (default: $eme_img)
     -n|--name NAME        Container name (default: $name)
     -D|--dns-check        Attempt to do AWS/DO DNS validation
-    -t|--cert-type TYPE   Certificate type to use e.g. 'letsencypt', 'comodo' (default: $cert_type)
+    -t|--cert-type TYPE   Certificate type to use e.g. 'letsencypt', 'comodo'
+                          (default: $cert_type)
     -v|--verbose          Verbose debugging info
 
 INIT OPTIONS:
     --server-name FQDN    Fully-qualified domain name for this VPN end-point
-    --target-id ID        Target ID for end-point in Encrypt.me UI
-    --user-pass PASS      Your Encrypt.me password
+    --slot-key ID         Slot registration key from the Encrypt.me website.
     --api-url URL         Use custom URL for Encrypt.me server API
+    --non-interactive     Do not attempt to allocate TTYs (e.g. to prompt for
+                          missing params)
 
 RUN OPTIONS:
     -R|--restart          Restarts running services if already running
 
 PRIVACY/SECURITY OPTIONS:
     -P|--pull-image       Pull Docker Hub image? (default: off)
-    -U|--update           Run WatchTower to keep VPN container up-to-date (default: off)
+    -U|--update           Run WatchTower to keep VPN container up-to-date
+                          (default: off)
     -S|--stats            Send generic bandwidth/health stats (default: off)
     --stats-server        Specify an alternate http(s) server to receive stats
 
 
 EXAMPLES:
 
-    # launch an auto-updating image with health reporting using the official image and ensure our AWS/DO public IP matches our FQDN
+    # launch an auto-updating image with health reporting using the official
+    # image and ensure our AWS/DO public IP matches our FQDN
     ./go.sh init -S -U -P -D
     
     # run the newly initialized server
@@ -120,14 +124,8 @@ collect_args() {
         read -p "Enter your Encrypt.me email address: " user_email
     done
     [ "$action" = 'init' ] && {
-        while [ -z "$user_pass" ]; do
-            read -p "Enter your Encrypt.me password: " -s user_pass
-        done
-        while [ -z "$target_id" ]; do
-            read -p $'\n'"Enter your Encrypt.me target ID: " target_id
-        done
-        while [ -z "$server_name" ]; do
-            read -p "Enter your Encrypt.me endpoint FQDN: " server_name
+        while [ -z "$slot_key" ]; do
+            read -p $'\n'"Enter your Encrypt.me slot registration key: " slot_key
         done
     }
 }
@@ -161,11 +159,13 @@ docker_cleanup() {
 }
 
 server_init() {
-    docker_cleanup "$name"
-    cmd docker run --rm -it --name "$name" \
+    local init_args=(run --rm)
+    [ $non_interactive -eq 0 ] && init_args=("${init_args[@]}" -it)
+    init_args=(
+        "${init_args[@]}"
+         --name "$name"
         -e ENCRYPTME_EMAIL="$user_email" \
-        -e ENCRYPTME_PASSWORD="$user_pass" \
-        -e ENCRYPTME_TARGET_ID="$target_id" \
+        -e ENCRYPTME_SLOT_KEY="$slot_key" \
         -e ENCRYPTME_API_URL="$api_url" \
         -e ENCRYPTME_SERVER_NAME="$server_name" \
         -e ENCRYPTME_VERBOSE=$verbose \
@@ -180,10 +180,13 @@ server_init() {
         -v /dev/log:/dev/log \
         --net host \
         "$eme_img"
-        # TODO verify if we need to remove /dev/log from production containers
-        # It may leak IP addresses even with loglevels set to -1
+    )
+    docker_cleanup "$name"
+    cmd docker "${init_args[@]}"
+    # TODO verify if we need to remove /dev/log from production containers
+    # It may leak IP addresses even with loglevels set to -1
 
-    # TODO: make more dynamic based on OS
+    # TODO: make more dynamic based on OS (e.g. at least check for systemctl before using it)
     if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
         rem Removing /etc/apparmor.d/usr.lib.ipsec.charon
         # TODO we should install a beter charon/stroke apparmor config
@@ -269,15 +272,13 @@ while [ $# -gt 0 ]; do
             user_email="$1"
             shift
             ;;
-        --user-pass)
-            [ $# -ge 1 ] || fail "Missing arg to --user-pass"
-            user_pass="$1"
+        --slot-key)
+            [ $# -ge 1 ] || fail "Missing arg to --slot-key"
+            slot_key="$1"
             shift
             ;;
-        --target-id)
-            [ $# -ge 1 ] || fail "Missing arg to --target-id"
-            target_id="$1"
-            shift
+        --non-interactive)
+            non_interactive=1
             ;;
         --server-name)
             [ $# -ge 1 ] || fail "Missing arg to --server_name"
