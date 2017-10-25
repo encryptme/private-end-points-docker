@@ -345,6 +345,7 @@ case "$action" in
     init|run|clean|reset)
         ;;
     *)
+        usage
         fail "Invalid action: '$action'"
 esac
 [ "$cert_type" = 'comodo' -o "$cert_type" = 'letsencrypt' ] \
