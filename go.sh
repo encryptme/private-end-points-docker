@@ -182,11 +182,8 @@ server_init() {
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
-        -v /dev/log:/dev/log \
         --net host \
         "$eme_img"
-        # TODO verify if we need to remove /dev/log from production containers
-        # It may leak IP addresses even with loglevels set to -1
 
     if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
         rem Removing /etc/apparmor.d/usr.lib.ipsec.charon
@@ -226,7 +223,6 @@ server_run() {
         --privileged \
         --net host \
         --restart always \
-        -v /dev/log:/dev/log \
         "$eme_img"
 }
 
