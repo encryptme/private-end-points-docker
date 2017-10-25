@@ -11,7 +11,7 @@ RUN apt-get update && \
 RUN pip install --upgrade pip && \
     pip install "$pep_repo" jinja2
 
-LABEL version=0.9.2-royhooper
+LABEL version=0.9.3-royhooper
 
 ADD https://gitlab.toybox.ca/krayola/encryptme-metrics/repository/archive.zip?ref=master /tmp/encryptme-metrics.zip
 RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
