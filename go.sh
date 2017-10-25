@@ -29,7 +29,8 @@ cert_type="letsencrypt"
 eme_img="royhooper/encryptme-server"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
 name="encryptme"
-stats_server="https://stats.getcloakvpn.com"
+# stats_server="https://stats.peps.encryptme.com"  # TODO Pending
+stats_server="http://34.210.196.66"  # TODO Not me!
 
 # hard-coded
 wt_image_name="watchtower"
