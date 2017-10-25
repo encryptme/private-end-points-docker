@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 ARG pep_repo=${pep_repo:-git+https://github.com/encryptme/private-end-points.git}
 
-LABEL version=0.9.1-royhooper
+LABEL version=0.9.2-royhooper
 
 RUN apt-get update && \
     apt-get install -y python python-pip python3 python3-pip git && \

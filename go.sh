@@ -31,6 +31,7 @@ wt_image="v2tec/watchtower"
 name="encryptme"
 # stats_server="https://stats.peps.encryptme.com"  # TODO Pending
 stats_server="http://34.210.196.66"  # TODO Not me!
+stats_args=""
 
 # hard-coded
 wt_image_name="watchtower"
@@ -82,6 +83,8 @@ PRIVACY/SECURITY OPTIONS:
     -U|--update           Run WatchTower to keep VPN container up-to-date (default: off)
     -S|--stats            Send generic bandwidth/health stats (default: off)
     --stats-server        Specify an alternate http(s) server to receive stats
+    --stats-extra         Include extra details in stats, such as server_id, target_id,
+                          server name (fqdn) and target name (default: off)
 
 
 EXAMPLES:
@@ -174,6 +177,7 @@ server_init() {
         -e ENCRYPTME_DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
+        -e ENCRYPTME_STATS_ARGS=$stats_args \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -213,6 +217,7 @@ server_run() {
         -e ENCRYPTME_DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
+        -e ENCRYPTME_STATS_ARGS=$stats_args \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -312,6 +317,9 @@ while [ $# -gt 0 ]; do
         --stats-server)
             stats_server="$1"
             shift
+            ;;
+        --stats-extra)
+            stats_args="--extra-node-information"
             ;;
         --verbose|-v)
             verbose=1

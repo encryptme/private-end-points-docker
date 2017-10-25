@@ -15,6 +15,7 @@ LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 ENCRYPTME_STATS="${ENCRYPTME_STATS:-0}"
 ENCRYPTME_STATS_SERVER="${ENCRYPTME_STATS_SERVER:-https://stats.stats.getcloakvpn.com/}"
+ENCRYPTME_STATS_ARGS="${ENCRYPTME_STATS_ARGS:-}"
 
 # helpers
 fail() {
@@ -329,7 +330,7 @@ rem "Configuring and starting strongSwan"
 
 [ $ENCRYPTME_STATS = 1 ] &&
     rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER" &&
-    encryptme-stats --server "$ENCRYPTME_STATS_SERVER" &
+    encryptme-stats --server "$ENCRYPTME_STATS_SERVER" $ENCRYPTME_STATS_ARGS &
 
 rem "Start-up complete"
 while true; do
