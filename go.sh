@@ -69,7 +69,7 @@ GENERIC OPTIONS:
     -v|--verbose          Verbose debugging info
 
 INIT OPTIONS:
-    --server-name FQDN    Fully-qualified domain name for this VPN end-point
+    --server-name NAME    Fully-qualified domain name for this VPN end-point
     --slot-key ID         Slot registration key from the Encrypt.me website.
     --api-url URL         Use custom URL for Encrypt.me server API
     --non-interactive     Do not attempt to allocate TTYs (e.g. to prompt for
@@ -182,7 +182,7 @@ server_init() {
         "$eme_img"
     )
     docker_cleanup "$name"
-    cmd docker "${init_args[@]}"
+    cmd docker "${init_args[@]}" || fail "Failed to register end-point"
     # TODO verify if we need to remove /dev/log from production containers
     # It may leak IP addresses even with loglevels set to -1
 
