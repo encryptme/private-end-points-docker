@@ -246,7 +246,11 @@ fi
 
 
 # Start services
-rundaemon cron
+if [ -x /usr/sbin/crond ]; then
+    rundaemon crond
+else
+    rundaemon cron
+fi
 rundaemon unbound -d &
 
 # Silence warning
