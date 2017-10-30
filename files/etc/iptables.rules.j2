@@ -52,16 +52,16 @@
 -A ENCRYPTME -p udp -m udp --dport 4500 -j ACCEPT
 
 # DNS through the tunnel
--A ENCRYPTME -s 10.137.0.0/16 -p udp -m udp --dport 53 -j ACCEPT
--A ENCRYPTME -s 10.137.0.0/16 -p tcp -m tcp --dport 53 -j ACCEPT
+-A ENCRYPTME -s  -p udp -m udp --dport 53 -j ACCEPT
+-A ENCRYPTME -s  -p tcp -m tcp --dport 53 -j ACCEPT
 
 #Allow in/out from VPN network
--A ENCRYPTME -d 10.137.0.0/16 -j ACCEPT
--A ENCRYPTME -s 10.137.0.0/16 -j ACCEPT
+-A ENCRYPTME -d  -j ACCEPT
+-A ENCRYPTME -s  -j ACCEPT
 
 #VPN traffic pass through
 -A FORWARD -j ENCRYPTME
-#-A FORWARD -d 10.137.0.0/16 -j ENCRYPTME
+#-A FORWARD -d  -j ENCRYPTME
 COMMIT
 
 *nat
@@ -81,8 +81,8 @@ COMMIT
 
 #ENCRYPTME
 :ENCRYPTME-NAT - [0:0]
--A ENCRYPTME-NAT -s 10.137.0.0/16 -j SNAT --to-source {{ip}} --random
--A POSTROUTING -s 10.137.0.0/16 -j ENCRYPTME-NAT
+-A ENCRYPTME-NAT -s  -j SNAT --to-source {{ip}} --random
+-A POSTROUTING -s  -j ENCRYPTME-NAT
 COMMIT
 
 #END
