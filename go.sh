@@ -208,7 +208,7 @@ server_watch() {
        --name "$wt_image_name" \
        -v /var/run/docker.sock:/var/run/docker.sock \
         --restart always \
-       "$wt_image"
+       "$wt_image" --interval 900 --cleanup encryptme watchtower
 }
 
 

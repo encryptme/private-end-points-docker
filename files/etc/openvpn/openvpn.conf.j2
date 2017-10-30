@@ -10,7 +10,7 @@ log /dev/stdout
 # This defines the virtual subnet. We recommend choosing one of the 10.x.0.0/16
 # subnets for Cloak. This will then need to be subdivided for the different
 # protocols.
-server {% if cloak_server.proto=='udp' %}10.137.0.0{% else %}10.137.64.0{% endif %} 255.255.192.0
+server {% if cloak_server.proto=='udp' %}100.64.0.0{% else %}100.64.64.0{% endif %} 255.255.192.0
 
 # We keep all of our certificates and CRLs in /etc/encryptme/pki/.
 key /etc/encryptme/pki/cloak.pem
@@ -25,7 +25,7 @@ dh /etc/encryptme/pki/dh2048.pem
 
 # Send DNS requests to a resolver listening on the gateway address. Anything
 # else leaves you open to DNS hijacking by malicious routers.
-push "dhcp-option DNS {% if cloak_server.proto=='udp' %}10.137.0.1{% else %}10.137.64.1{% endif %}"
+push "dhcp-option DNS {% if cloak_server.proto=='udp' %}100.64.0.1{% else %}100.64.64.1{% endif %}"
 
 # Just to be on the safe side, we'll make sure that only client certificates
 # are accepted. Without this, we would accept connections from other servers
