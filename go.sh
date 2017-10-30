@@ -32,6 +32,7 @@ name="encryptme"
 # stats_server="https://stats.peps.encryptme.com"  # TODO Pending
 stats_server="http://34.210.196.66"  # TODO Not me!
 stats_args=""
+logging=0
 
 # hard-coded
 wt_image_name="watchtower"
@@ -68,6 +69,7 @@ GENERIC OPTIONS:
     -D|--dns-check        Attempt to do AWS/DO DNS validation
     -t|--cert-type TYPE   Certificate type to use e.g. 'letsencypt', 'comodo' (default: $cert_type)
     -v|--verbose          Verbose debugging info
+    --logging             Enable some logging, eg IPSEC via /dev/log
 
 INIT OPTIONS:
     --server-name FQDN    Fully-qualified domain name for this VPN end-point
@@ -166,6 +168,8 @@ docker_cleanup() {
 
 server_init() {
     docker_cleanup "$name"
+    logging_args=""
+    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 --device /dev/log"
     cmd docker run --rm -it --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
         -e ENCRYPTME_PASSWORD="$user_pass" \
@@ -183,6 +187,7 @@ server_init() {
         -v /lib/modules:/lib/modules \
         --privileged \
         --net host \
+        $logging_args \
         "$eme_img"
 
     if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
@@ -208,6 +213,8 @@ server_watch() {
 
 server_run() {
     docker_cleanup "$name"
+    logging_args=""
+    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 --device /dev/log"
     cmd docker run -d --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
         -e ENCRYPTME_VERBOSE=$verbose \
@@ -223,6 +230,7 @@ server_run() {
         --privileged \
         --net host \
         --restart always \
+        $logging_args \
         "$eme_img"
 }
 
@@ -319,6 +327,9 @@ while [ $# -gt 0 ]; do
             ;;
         --verbose|-v)
             verbose=1
+            ;;
+        --logging)
+            logging=1
             ;;
         --remote|-r)
             [ $arg_count -ne 0 ] && fail "If using --remote|-r it must be the first argument"

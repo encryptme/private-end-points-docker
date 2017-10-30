@@ -310,6 +310,9 @@ while [ ! -z "$conf" ]; do
 done
 
 
+STRONGSWAN_LOGLEVEL=-1
+[ "${ENCRYPTME_LOGGING:-}" = 1 ] && STRONGSWAN_LOGLEVEL=2
+
 rem "Configuring and starting strongSwan"
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
@@ -321,6 +324,11 @@ rem "Configuring and starting strongSwan"
     -s /etc/ipsec.secrets.j2 \
     -o /etc/ipsec.secrets \
     -v letsencrypt=$LETSENCRYPT
+/bin/template.py \
+    -d "$ENCRYPTME_DATA_DIR/server.json" \
+    -s /etc/strongswan.conf.j2 \
+    -o /etc/strongswan.conf \
+    -v loglevel=$STRONGSWAN_LOGLEVEL
 /usr/sbin/ipsec start
 #/usr/sbin/ipsec reload
 #/usr/sbin/ipsec rereadcacerts
