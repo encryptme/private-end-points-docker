@@ -278,7 +278,7 @@ done
 
 rem "Configuring and launching OpenVPN"
 OPENVPN_LOGLEVEL=0
-OPENVPN_LOG_OPT="--log /dev/null"
+OPENVPN_LOG_OPT=""  # Disabled in template
 [ "${ENCRYPTME_LOGGING:-}" = 1 ] && OPENVPN_LOGLEVEL=2 &&
                                     OPENVPN_LOG_OPT="--syslog"
 
@@ -297,20 +297,21 @@ while [ ! -z "$conf" ]; do
     /bin/template.py \
         -d "$ENCRYPTME_DATA_DIR/openvpn.$n.json" \
         -s /etc/openvpn/openvpn.conf.j2 \
-        -o /etc/openvpn/server-$n.conf
+        -o /etc/openvpn/server-$n.conf \
+        -v logging=$ENCRYPTME_LOGGING
     rem "Started OpenVPN instance #$n"
     mkdir -p /var/run/openvpn
     test -e /var/run/openvpn/server-0.sock || \
         mkfifo /var/run/openvpn/server-0.sock
     rundaemon /usr/sbin/openvpn \
-        --status /var/run/openvpn/server-$n.status 10 \
+         $OPENVPN_LOG_OPT \
+         --status /var/run/openvpn/server-$n.status 10 \
          --cd /etc/openvpn \
          --script-security 2 \
          --config /etc/openvpn/server-$n.conf \
          --writepid /var/run/openvpn/server-$n.pid \
          --management /var/run/openvpn/server-$n.sock unix \
          --verb $OPENVPN_LOGLEVEL \
-         $OPENVPN_LOG_OPT \
          &
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
