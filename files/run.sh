@@ -277,6 +277,11 @@ done
 
 
 rem "Configuring and launching OpenVPN"
+OPENVPN_LOGLEVEL=0
+OPENVPN_LOG_OPT="--log /dev/null"
+[ "${ENCRYPTME_LOGGING:-}" = 1 ] && OPENVPN_LOGLEVEL=2 &&
+                                    OPENVPN_LOG_OPT="--syslog"
+
 get_openvpn_conf() {
     out=$(cat "$ENCRYPTME_DATA_DIR/server.json" | jq ".target.openvpn[$1]")
     if [ "$out" = null ]; then
@@ -304,6 +309,8 @@ while [ ! -z "$conf" ]; do
          --config /etc/openvpn/server-$n.conf \
          --writepid /var/run/openvpn/server-$n.pid \
          --management /var/run/openvpn/server-$n.sock unix \
+         --verb $OPENVPN_LOGLEVEL \
+         $OPENVPN_LOG_OPT \
          &
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
