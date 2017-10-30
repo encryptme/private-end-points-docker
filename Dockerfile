@@ -10,10 +10,9 @@ RUN yum clean all && \
 
 RUN pip install --upgrade pip && \
     pip install "$pep_repo" jinja2 && \
-    mkdir -p /etc/ipsec.d/crls /etc/ipsec.d/cacerts /etc/ipsec.d/certs /etc/ipsec.d/private && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
-LABEL version=0.9.6-royhooper-c7-v2
+LABEL version=0.9.6-royhooper-c7-v3
 
 ADD https://gitlab.toybox.ca/krayola/encryptme-metrics/repository/archive.zip?ref=master /tmp/encryptme-metrics.zip
 RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip

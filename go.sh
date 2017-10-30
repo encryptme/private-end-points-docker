@@ -169,7 +169,7 @@ docker_cleanup() {
 server_init() {
     docker_cleanup "$name"
     logging_args=""
-    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 --device /dev/log"
+    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log"
     cmd docker run --rm -it --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
         -e ENCRYPTME_PASSWORD="$user_pass" \
@@ -186,6 +186,7 @@ server_init() {
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
+        --log-driver journald \
         --net host \
         $logging_args \
         "$eme_img"
@@ -214,7 +215,7 @@ server_watch() {
 server_run() {
     docker_cleanup "$name"
     logging_args=""
-    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 --device /dev/log"
+    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log"
     cmd docker run -d --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
         -e ENCRYPTME_VERBOSE=$verbose \
@@ -228,6 +229,7 @@ server_run() {
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --privileged \
+        --log-driver journald \
         --net host \
         --restart always \
         $logging_args \
@@ -339,7 +341,7 @@ while [ $# -gt 0 ]; do
             run_remote "$remote_host" "$@"
             exit $?
             ;;
-        --restart)
+        --restart|-R)
             restart=1
             ;;
         *)
