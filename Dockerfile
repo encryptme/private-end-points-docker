@@ -12,7 +12,7 @@ RUN pip install --upgrade pip && \
     pip install "$pep_repo" jinja2 && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
-LABEL version=0.9.6-royhooper-c7-v4
+LABEL version=0.9.7
 
 ADD https://gitlab.toybox.ca/krayola/encryptme-metrics/repository/archive.zip?ref=master /tmp/encryptme-metrics.zip
 RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
