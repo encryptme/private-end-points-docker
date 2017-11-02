@@ -26,6 +26,6 @@ an environmental variable (e.g. `ENCRYPTME_EMAIL=you@example.com ./go.sh init`.
   container restarts.
 
 
-# TODO
+# Deploying
 
-- Verify logging is quiet when run without --logging
+This container expects a CentOS 7 or compatible host for IPSEC.
