@@ -159,12 +159,12 @@ fi
 
 
 # Symlink certificates and keys to ipsec.d directory
-if [ ! -L "/etc/ipsec.d/certs/cloak.pem" ]; then
-    ln -s "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/ipsec.d/crls/crls.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/ipsec.d/cacerts/cloak-anchor.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/ipsec.d/cacerts/cloak-client-ca.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/server.pem" "/etc/ipsec.d/certs/cloak.pem"
-    ln -s "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/ipsec.d/private/cloak.pem"
+if [ ! -L "/etc/strongswan/ipsec.d/certs/cloak.pem" ]; then
+    ln -s "$ENCRYPTME_PKI_DIR/crls.pem" "/etc/strongswan/ipsec.d/crls/crls.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/anchor.pem" "/etc/strongswan/ipsec.d/cacerts/cloak-anchor.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/client_ca.pem" "/etc/strongswan/ipsec.d/cacerts/cloak-client-ca.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/server.pem" "/etc/strongswan/ipsec.d/certs/cloak.pem"
+    ln -s "$ENCRYPTME_PKI_DIR/cloak.pem" "/etc/strongswan/ipsec.d/private/cloak.pem"
 fi
 
 
@@ -239,16 +239,20 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
     /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
 
     cp "/etc/letsencrypt/live/$FQDN/privkey.pem" \
-        /etc/ipsec.d/private/letsencrypt.pem \
+        /etc/strongswan/ipsec.d/private/letsencrypt.pem \
         || fail "Failed to copy privkey.pem to IPSec config dir"
     cp "/etc/letsencrypt/live/$FQDN/fullchain.pem" \
-        /etc/ipsec.d/certs/letsencrypt.pem \
+        /etc/strongswan/ipsec.d/certs/letsencrypt.pem \
         || fail "Failed to copy letsencrypt.pem to IPSec config dir"
 fi
 
 
 # Start services
-rundaemon cron
+if [ -x /usr/sbin/crond ]; then
+    rundaemon crond
+else
+    rundaemon cron
+fi
 rundaemon unbound -d &
 
 # Silence warning
@@ -275,6 +279,11 @@ done
 
 
 rem "Configuring and launching OpenVPN"
+OPENVPN_LOGLEVEL=0
+OPENVPN_LOG_OPT=""  # Disabled in template
+[ "${ENCRYPTME_LOGGING:-}" = 1 ] && OPENVPN_LOGLEVEL=2 &&
+                                    OPENVPN_LOG_OPT="--syslog"
+
 get_openvpn_conf() {
     out=$(cat "$ENCRYPTME_DATA_DIR/server.json" | jq ".target.openvpn[$1]")
     if [ "$out" = null ]; then
@@ -290,35 +299,46 @@ while [ ! -z "$conf" ]; do
     /bin/template.py \
         -d "$ENCRYPTME_DATA_DIR/openvpn.$n.json" \
         -s /etc/openvpn/openvpn.conf.j2 \
-        -o /etc/openvpn/server-$n.conf
+        -o /etc/openvpn/server-$n.conf \
+        -v logging=$ENCRYPTME_LOGGING
     rem "Started OpenVPN instance #$n"
     mkdir -p /var/run/openvpn
     test -e /var/run/openvpn/server-0.sock || \
         mkfifo /var/run/openvpn/server-0.sock
     rundaemon /usr/sbin/openvpn \
-        --status /var/run/openvpn/server-$n.status 10 \
+         $OPENVPN_LOG_OPT \
+         --status /var/run/openvpn/server-$n.status 10 \
          --cd /etc/openvpn \
          --script-security 2 \
          --config /etc/openvpn/server-$n.conf \
          --writepid /var/run/openvpn/server-$n.pid \
          --management /var/run/openvpn/server-$n.sock unix \
+         --verb $OPENVPN_LOGLEVEL \
          &
     n=$[ $n + 1 ]
     conf="$(get_openvpn_conf $n)"
 done
 
 
+STRONGSWAN_LOGLEVEL=-1
+[ "${ENCRYPTME_LOGGING:-}" = 1 ] && STRONGSWAN_LOGLEVEL=2
+
 rem "Configuring and starting strongSwan"
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/ipsec.conf.j2 \
-    -o /etc/ipsec.conf \
+    -s /etc/strongswan/ipsec.conf.j2 \
+    -o /etc/strongswan/ipsec.conf \
     -v letsencrypt=$LETSENCRYPT
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/ipsec.secrets.j2 \
-    -o /etc/ipsec.secrets \
+    -s /etc/strongswan/ipsec.secrets.j2 \
+    -o /etc/strongswan/ipsec.secrets \
     -v letsencrypt=$LETSENCRYPT
+/bin/template.py \
+    -d "$ENCRYPTME_DATA_DIR/server.json" \
+    -s /etc/strongswan/strongswan.conf.j2 \
+    -o /etc/strongswan/strongswan.conf \
+    -v loglevel=$STRONGSWAN_LOGLEVEL
 /usr/sbin/ipsec start
 #/usr/sbin/ipsec reload
 #/usr/sbin/ipsec rereadcacerts

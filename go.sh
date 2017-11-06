@@ -32,6 +32,7 @@ name="encryptme"
 # stats_server="https://stats.peps.encryptme.com"  # TODO Pending
 stats_server="http://34.210.196.66"  # TODO Not me!
 stats_args=""
+logging=0
 
 # hard-coded
 wt_image_name="watchtower"
@@ -69,6 +70,7 @@ GENERIC OPTIONS:
     -t|--cert-type TYPE   Certificate type to use e.g. 'letsencypt', 'comodo'
                           (default: $cert_type)
     -v|--verbose          Verbose debugging info
+    -l|--logging          Enable some logging, eg IPSEC via /dev/log
 
 INIT OPTIONS:
     --server-name NAME    Fully-qualified domain name for this VPN end-point
@@ -165,6 +167,9 @@ docker_cleanup() {
 server_init() {
     local init_args=(run --rm)
     [ $non_interactive -eq 0 ] && init_args=("${init_args[@]}" -it)
+    [ "$logging" = 1 ] \
+        && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log" \
+        || logging_args=''
     init_args=(
         "${init_args[@]}"
          --name "$name"
@@ -182,7 +187,9 @@ server_init() {
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
+        --log-driver journald \
         --net host \
+        $logging_args \
         "$eme_img"
     )
     docker_cleanup "$name"
@@ -206,12 +213,14 @@ server_watch() {
        --name "$wt_image_name" \
        -v /var/run/docker.sock:/var/run/docker.sock \
         --restart always \
-       "$wt_image"
+       "$wt_image" --interval 900 --cleanup encryptme watchtower
 }
 
 
 server_run() {
     docker_cleanup "$name"
+    logging_args=""
+    [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log"
     cmd docker run -d --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
         -e ENCRYPTME_VERBOSE=$verbose \
@@ -225,8 +234,10 @@ server_run() {
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --privileged \
+        --log-driver journald \
         --net host \
         --restart always \
+        $logging_args \
         "$eme_img"
 }
 
@@ -322,6 +333,9 @@ while [ $# -gt 0 ]; do
         --verbose|-v)
             verbose=1
             ;;
+        --logging|-l)
+            logging=1
+            ;;
         --remote|-r)
             [ $arg_count -ne 0 ] && fail "If using --remote|-r it must be the first argument"
             [ $# -ge 1 ] || fail "Missing arg to --remote|-r"
@@ -330,7 +344,7 @@ while [ $# -gt 0 ]; do
             run_remote "$remote_host" "$@"
             exit $?
             ;;
-        --restart)
+        --restart|-R)
             restart=1
             ;;
         *)

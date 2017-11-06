@@ -38,6 +38,7 @@ Thu Sep 21 02:15:57 2017 99.239.45.228:40803 CRL: CRL /etc/encryptme/pki/crls.pe
 | ENCRYPTME_SLOT_KEY | Required when attempting to register your server. |
 | DISABLE_LETSENCRYPT| 1 = Disable automatic letsencrypt |
 
+
 ```
 usage: ./go.sh [--remote|-r HOST] [ACTION ARGS] ACTION
 
@@ -69,9 +70,10 @@ GENERIC OPTIONS:
     -t|--cert-type TYPE   Certificate type to use e.g. 'letsencypt', 'comodo'
                           (default: letsencrypt)
     -v|--verbose          Verbose debugging info
+    -l|--logging          Enable some logging, eg IPSEC via /dev/log
 
 INIT OPTIONS:
-    --server-name FQDN    Fully-qualified domain name for this VPN end-point
+    --server-name NAME    Fully-qualified domain name for this VPN end-point
     --slot-key ID         Slot registration key from the Encrypt.me website.
     --api-url URL         Use custom URL for Encrypt.me server API
     --non-interactive     Do not attempt to allocate TTYs (e.g. to prompt for
@@ -86,6 +88,8 @@ PRIVACY/SECURITY OPTIONS:
                           (default: off)
     -S|--stats            Send generic bandwidth/health stats (default: off)
     --stats-server        Specify an alternate http(s) server to receive stats
+    --stats-extra         Include extra details in stats, such as server_id, target_id,
+                          server name (fqdn) and target name (default: off)
 
 
 EXAMPLES:
@@ -98,3 +102,8 @@ EXAMPLES:
     ./go.sh run
 
 ```
+
+
+# Deploying
+
+This container expects a CentOS 7 or compatible host for IPSEC.
