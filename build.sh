@@ -10,54 +10,83 @@ fail() {
 
 usage() {
     cat <<EOI
-Usage: $SCRIPT_NAME [ARGUMENTS]
+Usage: $SCRIPT_NAME [ARGUMENTS] [DOCKER ARGS]
 (e.g.)
 
 OPTIONS:
+    -b|--branch REPO      Override branch for PEP client repo
+    -e|--env ENV          Env to build/push (stage, prod) (default: $env)
     -h|--help             This information
-    -r|--repo REPO        Custom private-end points repo
-    -t|--tag TAG          Custom tag to use        
-    -f|--force            Force rebuild
+    -p|--push             Automatically push to Docker hub
 
 EXAMPLE:
 
-  \$ $SCRIPT_NAME --repo git+
+  \$ $SCRIPT_NAME -e stage -b jkf
 EOI
 }
 
-tag="encryptme"
-repo=""
-extra=""
+# args
+env='prod'
+branch=
+push=0
+docker_args=(--rm)
 
 while [ $# -gt 0 ]; do
     arg="$1"
     shift
     case "$arg" in 
-        --tag|-t)
-            [ $# -gt 0 ] || fail "Missing arg to --tag|-t"
-            tag="$1"
+        --branch|-b)
+            [ $# -gt 0 ] || fail "Missing arg to --env|-e"
+            branch="$1"
             shift
             ;;
-        --repo|-r)
-            [ $# -gt 0 ] || fail "Missing arg to --repo|-r"
-            repo="$1"
+        --env|-e)
+            [ $# -gt 0 ] || fail "Missing arg to --env|-e"
+            env="$1"
+            [ "$env" = 'stage' -o "$env" = 'prod' ] \
+                || fail "Unknown env: '$env'; 'stage' or 'prod' expected."
             shift
             ;;
-        --force|-f)
-            extra="--no-cache"
+        --push|-p)
+            push=1
             ;;
         --help|-h)
             usage
             exit
             ;;
         *)
-            fail "Invalid argument: $arg"
+            docker_args[${#docker_args[*]}]="$arg"
             ;;
     esac
 done
 
+
 which docker 2>&1 || fail "Failed to locate 'docker' binary"
 
-build_args=(-t "$tag" $extra .)
-[ -n "$repo" ] && build_args=(--build-arg pep_repo="$repo" "${build_args[@]}")
-docker build "${build_args[@]}"
+tag="encryptme/pep"
+if [ "$env" = 'stage' ]; then
+    tag="$tag-stage"
+    [ -n "$branch" ] || branch='stage'
+else
+    [ -n "$branch" ] || branch='master'
+fi
+
+echo "Building '$tag' for '$env' with PEP client repo branch '$branch'"
+echo
+echo '           ----======----'
+docker build . -t "$tag" \
+    --build-arg repo_branch="$branch" \
+    "${docker_args[@]}" \
+    || fail "Failed to build '$tag' with repo branch '$branch'"
+echo '           ----======----'
+echo
+echo
+
+if [ $push -eq 1 ]; then
+    docker push "$tag" || fail "Failed to push '$tag'"
+else
+    echo "Skipped 'docker push \"$tag\"'"
+fi
+
+
+exit 0
