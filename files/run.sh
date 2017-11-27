@@ -10,6 +10,7 @@ ENCRYPTME_CONF="${ENCRYPTME_DIR}/encryptme.conf"
 ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 ENCRYPTME_DATA_DIR="${ENCRYPTME_DATA_DIR:-$ENCRYPTME_DIR/data}"
 ENCRYPTME_DNS_CHECK=0
+ENCRYPTME_DNS_DELAY=0
 DISABLE_LETSENCRYPT=0
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
@@ -209,6 +210,11 @@ if [ $ENCRYPTME_DNS_CHECK -ne 0 ]; then
     done
 fi
 
+
+# temp hack for using letsencrypt and avoiding DNS propagation issues
+if [ $ENCRYPTME_DNS_DELAY -eq 1 ]; then
+    sleep 120
+fi
 
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
