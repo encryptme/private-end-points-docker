@@ -179,7 +179,6 @@ server_init() {
         -e ENCRYPTME_SERVER_NAME="$server_name" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_INIT_ONLY=1 \
-        -e ENCRYPTME_DNS_DELAY=1 \
         -e ENCRYPTME_DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
