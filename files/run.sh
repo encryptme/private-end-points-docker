@@ -211,6 +211,7 @@ if [ $ENCRYPTME_DNS_CHECK -ne 0 ]; then
 fi
 
 
+# TODO: remove this
 # temp hack for using letsencrypt and avoiding DNS propagation issues
 if [ $ENCRYPTME_DNS_DELAY -eq 1 ]; then
     sleep 120

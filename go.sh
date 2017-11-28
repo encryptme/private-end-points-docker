@@ -26,7 +26,7 @@ non_interactive=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
-eme_img="royhooper/encryptme-server"  # TODO: finalize w/ Encryptme hub account
+eme_img="encryptme/pep"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
 name="encryptme"
 # stats_server="https://stats.peps.encryptme.com"  # TODO Pending
@@ -224,6 +224,7 @@ server_run() {
     [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log"
     cmd docker run -d --name "$name" \
         -e ENCRYPTME_EMAIL="$user_email" \
+        -e ENCRYPTME_API_URL="$api_url" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
