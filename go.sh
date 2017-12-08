@@ -29,8 +29,7 @@ cert_type="letsencrypt"
 eme_img="encryptme/pep"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
 name="encryptme"
-# stats_server="https://stats.peps.encryptme.com"  # TODO Pending
-stats_server="http://34.210.196.66"  # TODO Not me!
+stats_server="http://pep-stats.encryptme.com"
 stats_args=""
 logging=0
 
