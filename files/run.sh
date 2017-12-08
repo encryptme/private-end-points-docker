@@ -3,19 +3,24 @@
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
-# main vars
+# main conf opts
 ENCRYPTME_DIR="${ENCRYPTME_DIR:-/etc/encryptme}"
 ENCRYPTME_API_URL="${ENCRYPTME_API_URL:-}"
 ENCRYPTME_CONF="${ENCRYPTME_DIR}/encryptme.conf"
 ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 ENCRYPTME_DATA_DIR="${ENCRYPTME_DATA_DIR:-$ENCRYPTME_DIR/data}"
-ENCRYPTME_DNS_CHECK=0
-DISABLE_LETSENCRYPT=0
-LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
-VERBOSE=${ENCRYPTME_VERBOSE:-0}
+# stats opts
 ENCRYPTME_STATS="${ENCRYPTME_STATS:-0}"
 ENCRYPTME_STATS_SERVER="${ENCRYPTME_STATS_SERVER:-https://stats.stats.getcloakvpn.com/}"
 ENCRYPTME_STATS_ARGS="${ENCRYPTME_STATS_ARGS:-}"
+# helper run-time opts
+DNS_CHECK=0
+# ssl opts
+LETSENCRYPT_DISABLED=0
+LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
+SSL_EMAIL=${SSL_EMAIL:-}
+# misc opts
+VERBOSE=${VERBOSE:-0}
 
 # helpers
 fail() {
@@ -63,8 +68,8 @@ cmd mkdir -p "$ENCRYPTME_PKI_DIR"/crls
 if [ ! -d "$ENCRYPTME_PKI_DIR" ]; then
     fail "ENCRYPTME_PKI_DIR '$ENCRYPTME_PKI_DIR' did not exist and count not be created" 3
 fi
-if [ -z "$ENCRYPTME_EMAIL" -a "$DISABLE_LETSENCRYPT" != 1 ]; then
-    fail "ENCRYPTME_EMAIL must be set if DISABLE_LETSENCRYPT is not set" 4
+if [ -z "$SSL_EMAIL" -a "$LETSENCRYPT_DISABLED" != 1 ]; then
+    fail "SSL_EMAIL must be set if LETSENCRYPT_DISABLED is not set" 4
 fi
 if [ "$ENNCRYPTME_STATS" = 1 -a -z "$ENCRYPME_STATS_SERVER" ]; then
     fail "ENCRYPTME_STATS=1 but no ENCRYPME_STATS_SERVER"
@@ -187,7 +192,7 @@ FQDN=${FQDNS%% *}
 # TODO: Note this is only valid for AWS http://169.254.169.254 is at Amazon
 DNSOK=1
 DNS=0.0.0.0
-if [ $ENCRYPTME_DNS_CHECK -ne 0 ]; then
+if [ $DNS_CHECK -ne 0 ]; then
     EXTIP=$(curl --connect-timeout 5 -s http://169.254.169.254/latest/meta-data/public-ipv4)
     for hostname in $FQDNS; do
         rem "Checking DNS for FQDN '$hostname'"
@@ -213,13 +218,13 @@ fi
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
 LETSENCRYPT=0
-if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
+if [ -z "${LETSENCRYPT_DISABLED:-}" -o "${LETSENCRYPT_DISABLED:-}" = "0" ]; then
     LETSENCRYPT=1
     if [ "$DNSOK" = 0 ]; then
         rem "WARNING: DNS issues found, it is unlikely letsencrypt will succeed."
     fi
 
-    set - --non-interactive --email "$ENCRYPTME_EMAIL" --agree-tos certonly
+    set - --non-interactive --email "$SSL_EMAIL" --agree-tos certonly
     set - "$@" $(for fqdn in $FQDNS; do printf -- '-d %q' "$fqdn"; done)
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         set - "$@" --staging
@@ -231,11 +236,21 @@ if [ -z "${DISABLE_LETSENCRYPT:-}" -o "${DISABLE_LETSENCRYPT:-}" = "0" ]; then
     if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
         rem "Getting certificate for $FQDN"
         rem "Letsencrypt arguments: " "$@"
-        letsencrypt "$@"
-        set -
+        tries=0
+        # wait up to 5 minutes for DNS to propagate
+        success=0
+        while [ $tries -lt 10 ]; do
+            letsencrypt "$@" && success=1 || {
+                let tries+=1
+                sleep 30
+            }
+        done
+        [ $success -eq 1 ] \
+            || fail "Failed to obtain LetsEncrypt SSL certificate."
     else
         letsencrypt renew
     fi
+    set -
     /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
 
     cp "/etc/letsencrypt/live/$FQDN/privkey.pem" \
@@ -345,7 +360,7 @@ rem "Configuring and starting strongSwan"
 #/usr/sbin/ipsec rereadcrls
 
 
-[ ${ENCRYPTME_INIT_ONLY:-0} = "1" ] && {
+[ ${INIT_ONLY:-0} = "1" ] && {
     rem "Init complete; run './go.sh run' to start"
     exit 0
 }

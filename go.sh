@@ -3,7 +3,7 @@
 # Initialize and run an Encrypt.me private end-point via Docker
 
 # TODO: integrate whether or not to collect stats
-# TODO: implement comodo SSL certs
+# TODO: implement pre-supplied SSL certs (e.g. from Comodo or some other provider)
 
 
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
@@ -12,7 +12,7 @@ SCRIPT_PATH="$0"
 
 # dynamic params
 [ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
-user_email=
+ssl_email=
 server_name=
 slot_key=
 action=
@@ -62,7 +62,7 @@ GENERIC OPTIONS:
     -c|--conf-dir DIR     Directory to use/create for private configs/certs
     -d|--dryrun|--dry-run Run without making changes
                           (default: $conf_dir)
-    -e|--email            Your Encrypt.me email address (for certs/API auth)
+    -e|--email            Email email address for LetsEncrypt certs
     -h|--help             Show this message
     -i|--image IMAGE      Docker image to use (default: $eme_img)
     -n|--name NAME        Container name (default: $name)
@@ -73,11 +73,11 @@ GENERIC OPTIONS:
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
 
 INIT OPTIONS:
-    --server-name NAME    Fully-qualified domain name for this VPN end-point
-    --slot-key ID         Slot registration key from the Encrypt.me website.
     --api-url URL         Use custom URL for Encrypt.me server API
     --non-interactive     Do not attempt to allocate TTYs (e.g. to prompt for
                           missing params)
+    --server-name NAME    Fully-qualified domain name for this VPN end-point
+    --slot-key ID         Slot registration key from the Encrypt.me website.
 
 RUN OPTIONS:
     -R|--restart          Restarts running services if already running
@@ -126,8 +126,8 @@ cmd() {
 }
 
 collect_args() {
-    while [ -z "$user_email" ]; do
-        read -p "Enter your Encrypt.me email address: " user_email
+    while [ -z "$ssl_email" ]; do
+        read -p "Enter your the email address for your LetsEncrypt certificate: " ssl_email
     done
     [ "$action" = 'init' ] && {
         while [ -z "$slot_key" ]; do
@@ -173,16 +173,16 @@ server_init() {
     init_args=(
         "${init_args[@]}"
          --name "$name"
-        -e ENCRYPTME_EMAIL="$user_email" \
+        -e SSL_EMAIL="$ssl_email" \
         -e ENCRYPTME_SLOT_KEY="$slot_key" \
         -e ENCRYPTME_API_URL="$api_url" \
         -e ENCRYPTME_SERVER_NAME="$server_name" \
-        -e ENCRYPTME_VERBOSE=$verbose \
-        -e ENCRYPTME_INIT_ONLY=1 \
-        -e ENCRYPTME_DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS=$stats_args \
+        -e ENCRYPTME_VERBOSE=$verbose \
+        -e INIT_ONLY=1 \
+        -e DNS_CHECK=$dns_check \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -222,10 +222,10 @@ server_run() {
     logging_args=""
     [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log"
     cmd docker run -d --name "$name" \
-        -e ENCRYPTME_EMAIL="$user_email" \
+        -e SSL_EMAIL="$ssl_email" \
         -e ENCRYPTME_API_URL="$api_url" \
-        -e ENCRYPTME_VERBOSE=$verbose \
-        -e ENCRYPTME_DNS_CHECK=$dns_check \
+        -e VERBOSE=$verbose \
+        -e DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS=$stats_args \
@@ -283,7 +283,7 @@ while [ $# -gt 0 ]; do
             ;;
         --email|-e)
             [ $# -ge 1 ] || fail "Missing arg to --email|-e"
-            user_email="$1"
+            ssl_email="$1"
             shift
             ;;
         --slot-key)
