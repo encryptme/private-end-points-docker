@@ -1,4 +1,4 @@
-#!/bin/bash -u
+#!/bin/bash
 
 # Initialize and run an Encrypt.me private end-point via Docker
 
@@ -182,6 +182,7 @@ server_init() {
         -e ENCRYPTME_STATS_ARGS=$stats_args \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e INIT_ONLY=1 \
+        -e DNS_TEST_IP="$dns_test_ip" \
         -e DNS_CHECK=$dns_check \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
@@ -313,6 +314,11 @@ while [ $# -gt 0 ]; do
             ;;
         --dns-check|-D)
             dns_check=1
+            ;;
+        --dns-test-ip)
+            [ $# -ge 1 ] || fail "Missing arg to --dns-test-ip"
+            dns_test_ip="$1"
+            shift
             ;;
         --update|-U)
             auto_update=1

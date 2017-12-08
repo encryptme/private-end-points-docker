@@ -12,8 +12,8 @@ RUN pip install --upgrade pip && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
-LABEL version=0.9.8
-RUN echo "v0.9.8" > /container-version-id
+LABEL version=0.9.9
+RUN echo "v0.9.9" > /container-version-id
 
 ADD https://gitlab.toybox.ca/krayola/encryptme-metrics/repository/archive.zip?ref=master /tmp/encryptme-metrics.zip
 RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip

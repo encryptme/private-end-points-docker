@@ -14,13 +14,14 @@ ENCRYPTME_STATS="${ENCRYPTME_STATS:-0}"
 ENCRYPTME_STATS_SERVER="${ENCRYPTME_STATS_SERVER:-https://stats.stats.getcloakvpn.com/}"
 ENCRYPTME_STATS_ARGS="${ENCRYPTME_STATS_ARGS:-}"
 # helper run-time opts
-DNS_CHECK=0
+DNS_CHECK=${DNS_CHECK:-0}
+DNS_TEST_IP=${DNS_TEST_IP:-}
 # ssl opts
 LETSENCRYPT_DISABLED=0
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 SSL_EMAIL=${SSL_EMAIL:-}
 # misc opts
-VERBOSE=${VERBOSE:-0}
+VERBOSE=${ENCRYPTME_VERBOSE:-0}
 
 # helpers
 fail() {
@@ -57,6 +58,8 @@ encryptme_server() {
     CONTAINER_VERSION="$cont_ver" cmd cloak-server "${args[@]}"
 }
 
+# debug mode, if requested
+[ $VERBOSE -gt 0 ] && set -x
 
 # sanity checks and basic init
 if [ ! -d "$ENCRYPTME_DIR" ]; then
@@ -214,6 +217,17 @@ if [ $DNS_CHECK -ne 0 ]; then
     done
 fi
 
+# make sure the domain is resolving to us properly
+if [ $DNS_TEST_IP ]; do
+    tries=0
+    fqdn_pointed=0
+    # try up to minutes for it to work
+    while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
+        sleep 10
+        dig +short +trace "$FQDN" 2>/dev/null | grep "^A $DNS_TEST_IP " && fqdn_pointed=1
+    done
+    [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
+done
 
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
@@ -236,13 +250,13 @@ if [ -z "${LETSENCRYPT_DISABLED:-}" -o "${LETSENCRYPT_DISABLED:-}" = "0" ]; then
     if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
         rem "Getting certificate for $FQDN"
         rem "Letsencrypt arguments: " "$@"
+        # we get 5 failures per hostname per hour, so we gotta make it count
         tries=0
-        # wait up to 5 minutes for DNS to propagate
         success=0
-        while [ $tries -lt 10 ]; do
+        while [ $tries -lt 2 ]; do
             letsencrypt "$@" && success=1 || {
                 let tries+=1
-                sleep 30
+                sleep 60
             }
         done
         [ $success -eq 1 ] \

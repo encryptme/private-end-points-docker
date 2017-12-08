@@ -15,8 +15,9 @@ Usage: $SCRIPT_NAME [ARGUMENTS] [DOCKER ARGS]
 
 OPTIONS:
     -b|--branch REPO      Override branch for PEP client repo
-    -e|--env ENV          Env to build/push (stage, prod) (default: $env)
+    -e|--env ENV          Env to build/push (dev, stage, prod) (default: $env)
     -h|--help             This information
+    -t|--tag TAG          Override image tag
     -p|--push             Automatically push to Docker hub
 
 EXAMPLE:
@@ -30,6 +31,7 @@ env='prod'
 branch=
 push=0
 docker_args=(--rm)
+user_tag=
 
 while [ $# -gt 0 ]; do
     arg="$1"
@@ -43,12 +45,17 @@ while [ $# -gt 0 ]; do
         --env|-e)
             [ $# -gt 0 ] || fail "Missing arg to --env|-e"
             env="$1"
-            [ "$env" = 'stage' -o "$env" = 'prod' ] \
-                || fail "Unknown env: '$env'; 'stage' or 'prod' expected."
+            [ "$env" = 'dev' -o "$env" = 'stage' -o "$env" = 'prod' ] \
+                || fail "Unknown env: '$env'; 'dev', 'stage' or 'prod' expected."
             shift
             ;;
         --push|-p)
             push=1
+            ;;
+        --tag|-t)
+            [ $# -gt 0 ] || fail "Missing arg to --tag|-t"
+            user_tag="$1"
+            shift
             ;;
         --help|-h)
             usage
@@ -62,14 +69,23 @@ done
 
 
 which docker 2>&1 || fail "Failed to locate 'docker' binary"
+cd "$BASE_DIR" || fail "Failed to CD to our base dir?"
+# any cruft?
+cruft="$(find . -name .\*.sw? | wc -l | awk '{print $1}')"
+[ $cruft -gt 0 ] && echo "$cruft swap file(s) lurk; lets keep things clean"
+
 
 tag="encryptme/pep"
-if [ "$env" = 'stage' ]; then
+if [ "$env" = 'dev' ]; then
+    tag="$tag-dev"
+    [ -n "$branch" ] || fail "Must specify branch to use for 'dev'"
+elif [ "$env" = 'stage' ]; then
     tag="$tag-stage"
     [ -n "$branch" ] || branch='stage'
 else
     [ -n "$branch" ] || branch='master'
 fi
+[ -n "$user_tag" ] && tag="$user_tag"
 
 echo "Building '$tag' for '$env' with PEP client repo branch '$branch'"
 echo
