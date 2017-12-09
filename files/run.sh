@@ -227,7 +227,7 @@ if [ -n "$DNS_TEST_IP" ]; then
         dig +short +trace "$FQDN" 2>/dev/null | grep "^A $DNS_TEST_IP " && fqdn_pointed=1
     done
     [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
-done
+fi
 
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
