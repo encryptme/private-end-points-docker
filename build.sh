@@ -91,6 +91,7 @@ echo "Building '$tag' for '$env' with PEP client repo branch '$branch'"
 echo
 echo '           ----======----'
 docker build . -t "$tag" \
+    --build-arg build_time=$(date +%s) \
     --build-arg repo_branch="$branch" \
     "${docker_args[@]}" \
     || fail "Failed to build '$tag' with repo branch '$branch'"
