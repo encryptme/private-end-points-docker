@@ -3,7 +3,7 @@ FROM centos:7
 RUN yum clean all && \
     yum -y -q update && \
     yum -y -q install epel-release && yum -y update && \
-    yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git knot jq gcc && \
+    yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git knot jq gcc bind-utils && \
     yum -y -q install unbound openvpn strongswan kmod letsencrypt vim curl socat perl-JSON-PP.noarch && \
     rm -rf /var/cache/yum
 
