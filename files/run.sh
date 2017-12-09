@@ -225,6 +225,7 @@ if [ -n "$DNS_TEST_IP" ]; then
     while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
         sleep 10
         dig +short +trace "$FQDN" 2>/dev/null | grep "^A $DNS_TEST_IP " && fqdn_pointed=1
+        let tries+=1
     done
     [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
 fi
