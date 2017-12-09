@@ -218,7 +218,7 @@ if [ $DNS_CHECK -ne 0 ]; then
 fi
 
 # make sure the domain is resolving to us properly
-if [ -n "$DNS_TEST_IP" ]; do
+if [ -n "$DNS_TEST_IP" ]; then
     tries=0
     fqdn_pointed=0
     # try up to minutes for it to work
