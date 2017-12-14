@@ -219,7 +219,9 @@ server_watch() {
 }
 
 server_shell() {
-    cmd docker run -d \
+    cmd docker run \
+        -it \
+        --entrypoint bash \
         -e ENCRYPTME_API_URL="$api_url" \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
@@ -229,8 +231,6 @@ server_shell() {
         -v /lib/modules:/lib/modules \
         --privileged \
         --net host \
-        -it \
-        --entrypoint bash \
         "$eme_img"
 }
 
