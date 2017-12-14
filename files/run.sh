@@ -17,7 +17,7 @@ ENCRYPTME_STATS_ARGS="${ENCRYPTME_STATS_ARGS:-}"
 DNS_CHECK=${DNS_CHECK:-0}
 DNS_TEST_IP=${DNS_TEST_IP:-}
 # ssl opts
-LETSENCRYPT_DISABLED=0
+LETSENCRYPT_DISABLED=${LETSENCRYPT_DISABLED:-0}
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 SSL_EMAIL=${SSL_EMAIL:-}
 # misc opts
@@ -233,18 +233,31 @@ fi
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
 LETSENCRYPT=0
-if [ -z "${LETSENCRYPT_DISABLED:-}" -o "${LETSENCRYPT_DISABLED:-}" = "0" ]; then
+if [ "$LETSENCRYPT_DISABLED" != 0 ]; then
     LETSENCRYPT=1
     if [ "$DNSOK" = 0 ]; then
         rem "WARNING: DNS issues found, it is unlikely letsencrypt will succeed."
     fi
-
-    set - --non-interactive --email "$SSL_EMAIL" --agree-tos certonly
-    set - "$@" $(for fqdn in $FQDNS; do printf -- '-d %q' "$fqdn"; done)
+    # build up the letsencrypt args
+    LE_ARGS=(
+        --non-interactive
+        --email "$SSL_EMAIL"
+        --agree-tos
+        certonly
+    )
+    for fqdn in $FQDNS; do
+        LE_ARGS=("${LE_ARGS[@]}" -d $fqdn)
+    done
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
-        set - "$@" --staging
+        LE_ARGS=("${LE_ARGS[@]}" --staging)
     fi
-    set - "$@" --expand --standalone --standalone-supported-challenges http-01
+    LE_ARGS=(
+        "${LE_ARGS[@]}"
+        --expand
+        --standalone
+        --standalone-supported-challenges
+        http-01
+    )
 
     # temporarily allow in HTTP traffic to perform domain verification
     /sbin/iptables -A INPUT -p tcp --dport http -j ACCEPT
@@ -254,8 +267,8 @@ if [ -z "${LETSENCRYPT_DISABLED:-}" -o "${LETSENCRYPT_DISABLED:-}" = "0" ]; then
         # we get 5 failures per hostname per hour, so we gotta make it count
         tries=0
         success=0
-        while [ $tries -lt 2 ]; do
-            letsencrypt "$@" && success=1 || {
+        while [ $tries -lt 2 -a $success -eq 0 ]; do
+            letsencrypt "${LE_ARGS[@]}" && success=1 || {
                 let tries+=1
                 sleep 60
             }
@@ -265,7 +278,6 @@ if [ -z "${LETSENCRYPT_DISABLED:-}" -o "${LETSENCRYPT_DISABLED:-}" = "0" ]; then
     else
         letsencrypt renew
     fi
-    set -
     /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
 
     cp "/etc/letsencrypt/live/$FQDN/privkey.pem" \

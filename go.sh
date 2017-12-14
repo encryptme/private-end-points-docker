@@ -56,6 +56,7 @@ ACTIONS:
     run     set the private-end point to run
     clean   remove the private end-point container, images, and configs
     reset   stop/remove any current instance and remove configs
+    shell   Run the image with a custom entrypoint to start bash
 
 
 GENERIC OPTIONS:
@@ -217,6 +218,21 @@ server_watch() {
        "$wt_image" --interval 900 --cleanup encryptme watchtower
 }
 
+server_shell() {
+    cmd docker run -d \
+        -e ENCRYPTME_API_URL="$api_url" \
+        -v "$conf_dir:/etc/encryptme" \
+        -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
+        -v /lib/modules:/lib/modules \
+        -v /proc:/hostfs/proc:ro \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v /lib/modules:/lib/modules \
+        --privileged \
+        --net host \
+        -it \
+        --entrypoint bash \
+        "$eme_img"
+}
 
 server_run() {
     docker_cleanup "$name"
@@ -368,7 +384,7 @@ done
 # a few sanity checks
 cmd which docker > /dev/null || fail "Docker is not installed"
 case "$action" in
-    init|run|clean|reset)
+    init|run|clean|reset|shell)
         ;;
     *)
         usage
@@ -414,6 +430,11 @@ esac
     }
     rem "starting $name container"
     server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
+}
+
+[ "$action" = "shell" ] && {
+    rem "starting temporary container"
+    server_shell
 }
 
 [ "$action" = "reset" ] && {
