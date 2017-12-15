@@ -18,6 +18,7 @@ OPTIONS:
     -e|--env ENV          Env to build/push (stage, prod) (default: $env)
     -h|--help             This information
     -p|--push             Automatically push to Docker hub
+    -t|--tag              Specify explicit tag (overrides --env)
 
 EXAMPLE:
 
@@ -30,6 +31,7 @@ env='prod'
 branch=
 push=0
 docker_args=(--rm)
+force_tag=
 
 while [ $# -gt 0 ]; do
     arg="$1"
@@ -50,6 +52,10 @@ while [ $# -gt 0 ]; do
         --push|-p)
             push=1
             ;;
+        --tag|-t)
+            force_tag="$1"
+            shift
+            ;;
         --help|-h)
             usage
             exit
@@ -69,6 +75,9 @@ if [ "$env" = 'stage' ]; then
     [ -n "$branch" ] || branch='stage'
 else
     [ -n "$branch" ] || branch='master'
+fi
+if [ ! -z "$force_tag" ]; then
+    tag="$force_tag"
 fi
 
 echo "Building '$tag' for '$env' with PEP client repo branch '$branch'"
