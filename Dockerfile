@@ -15,7 +15,7 @@ RUN pip install --upgrade pip && \
 LABEL version=0.9.9
 RUN echo "v0.9.9" > /container-version-id
 
-ADD https://gitlab.toybox.ca/krayola/encryptme-metrics/repository/archive.zip?ref=master /tmp/encryptme-metrics.zip
+ADD https://github.com/rhooper/encryptme-metrics/archive/master.zip /tmp/encryptme-metrics.zip
 RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 
 ENV DISABLE_LETSENCRYPT 0

@@ -19,6 +19,7 @@ OPTIONS:
     -h|--help             This information
     -t|--tag TAG          Override image tag
     -p|--push             Automatically push to Docker hub
+    -t|--tag              Specify explicit tag (overrides --env)
 
 EXAMPLE:
 
