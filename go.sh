@@ -393,8 +393,8 @@ esac
     collect_args
     
     #load sysctl configuration
-    cp $BASE_DIR/sysctl.conf /etc
-    /sbin/sysctl -p /etc/sysctl.conf
+#    cp $BASE_DIR/sysctl.conf /etc
+#    /sbin/sysctl -p /etc/sysctl.conf
 }
 
 
