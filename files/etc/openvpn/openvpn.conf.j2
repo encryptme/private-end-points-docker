@@ -1,4 +1,3 @@
-# These parameters are shared with the clients and must not be changed.
 dev tun
 proto {{cloak_server.proto}}
 port {{cloak_server.port}}
@@ -9,9 +8,6 @@ auth {{cloak_server.digest}}
 log-append /dev/null
 {% endif %}
 
-# This defines the virtual subnet. We recommend choosing one of the 10.x.0.0/16
-# subnets for Cloak. This will then need to be subdivided for the different
-# protocols.
 server {% if cloak_server.proto=='udp' %}100.64.0.0{% else %}100.64.64.0{% endif %} 255.255.192.0
 
 # We keep all of our certificates and CRLs in /etc/encryptme/pki/.
@@ -21,20 +17,12 @@ ca /etc/encryptme/pki/anchor.pem
 extra-certs /etc/encryptme/pki/client_ca.pem
 crl-verify /etc/encryptme/pki/crls.pem
 
-# You must also supply Diffie-Hellman parameters. We recommend generating your
-# own 2048-bit parameters.
 dh /etc/encryptme/pki/dh2048.pem
 
-# Send DNS requests to a resolver listening on the gateway address. Anything
-# else leaves you open to DNS hijacking by malicious routers.
 push "dhcp-option DNS {% if cloak_server.proto=='udp' %}100.64.0.1{% else %}100.64.64.1{% endif %}"
 
-# Just to be on the safe side, we'll make sure that only client certificates
-# are accepted. Without this, we would accept connections from other servers
-# configured with the same PKI.
 remote-cert-eku "TLS Web Client Authentication"
 
-# These are some miscellaneous settings that you'll probably want.
 keepalive 10 120
 {% if cloak_server.proto == 'udp' %}
 push "explicit-exit-notify"
@@ -43,6 +31,8 @@ tcp-nodelay
 {% endif %}
 
 comp-lzo
-
-# See https://community.openvpn.net/openvpn/wiki/Openvpn23ManPage for more. You
-# may want to turn on logging or define a managemet interface.
+txqueuelen 1000
+sndbuf 0
+rcvbuf 0
+push "sndbuf 493216"
+push "rcvbuf 493216"
