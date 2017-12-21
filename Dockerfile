@@ -21,7 +21,6 @@ RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 ENV DISABLE_LETSENCRYPT 0
 
 ARG build_time=${build_time:-x}
-
 ADD files/ /
 
 
