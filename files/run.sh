@@ -233,7 +233,7 @@ fi
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
 LETSENCRYPT=0
-if [ "$LETSENCRYPT_DISABLED" != 0 ]; then
+if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     LETSENCRYPT=1
     if [ "$DNSOK" = 0 ]; then
         rem "WARNING: DNS issues found, it is unlikely letsencrypt will succeed."
