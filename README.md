@@ -1,3 +1,9 @@
+# DEPLOYING
+
+This container expects a CentOS 7 or compatible host for IPSEC. 
+Server registration keys can be created by Encrypt.me Teams on the network
+management section of the the team control panel.
+
 # OVERVIEW
 
 The script "go.sh" (see `./go.sh --help`) automates the Docker container setup
@@ -15,9 +21,6 @@ export SSL_EMAIL=user@example.com
 ENCRYPTME_SLOT_KEY=one-time-key ./go.sh init --non-interactive && ./go.sh run
 ```
 
-Server registration keys can be created in the Encrypt.me team network
-management section of the customer portal.
-
 
 # MOUNTPOINTS / PERSISTENT DATA
 
@@ -34,7 +37,7 @@ ownership is validated via the HTTP ACME challenge. This is automatically
 renewed for you.
 
 
-# go.sh usage
+# go.sh FULL USAGE
 
 ### ENVIRONMENT VARIABLES
 
@@ -108,8 +111,3 @@ EXAMPLES:
     # run the newly initialized server
     ./go.sh run
 ```
-
-
-# Deploying
-
-This container expects a CentOS 7 or compatible host for IPSEC.
