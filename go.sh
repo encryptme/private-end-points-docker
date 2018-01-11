@@ -386,8 +386,8 @@ done
 # setup for run
 # --------------------------------------------------
 # a few sanity checks
-[ $send_stats -eq -a -n "$stats_server" ] && \
-    fail "A stats server (e.g. http://pep-stats.example.com) is required for --stats)"
+[ $send_stats -eq 1 -a -z "$stats_server" ] \
+    && fail "A stats server (e.g. http://pep-stats.example.com) is required for --stats)"
 cmd which docker > /dev/null || fail "Docker is not installed"
 case "$action" in
     init|run|clean|reset|shell)
