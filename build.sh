@@ -14,7 +14,7 @@ Usage: $SCRIPT_NAME [ARGUMENTS] [DOCKER ARGS]
 (e.g.)
 
 OPTIONS:
-    -b|--branch REPO      Override branch for PEP client repo
+    -b|--branch REPO      Override branch for PEP client and stats repos
     -e|--env ENV          Env to build/push (dev, stage, prod) (default: $env)
     -h|--help             This information
     -t|--tag TAG          Override image tag
@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
     shift
     case "$arg" in 
         --branch|-b)
-            [ $# -gt 0 ] || fail "Missing arg to --env|-e"
+            [ $# -gt 0 ] || fail "Missing arg to --branch|-b"
             branch="$1"
             shift
             ;;
@@ -71,9 +71,6 @@ done
 
 which docker 2>&1 || fail "Failed to locate 'docker' binary"
 cd "$BASE_DIR" || fail "Failed to CD to our base dir?"
-# any cruft?
-cruft="$(find . -name .\*.sw? | wc -l | awk '{print $1}')"
-[ $cruft -gt 0 ] && fail "$cruft swap file(s) lurk; lets keep things clean"
 
 
 tag="encryptme/pep"

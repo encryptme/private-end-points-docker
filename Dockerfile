@@ -15,7 +15,8 @@ RUN pip install --upgrade pip && \
 LABEL version=0.9.10
 RUN echo "v0.9.10" > /container-version-id
 
-ADD https://github.com/encryptme/private-end-points-docker-stats/archive/master.zip /tmp/encryptme-metrics.zip
+ARG repo_branch=${repo_branch:-master}
+ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip
 RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 
 ENV DISABLE_LETSENCRYPT 0

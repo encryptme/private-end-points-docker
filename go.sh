@@ -2,7 +2,6 @@
 
 # Initialize and run an Encrypt.me private end-point via Docker
 
-# TODO: integrate whether or not to collect stats
 # TODO: implement pre-supplied SSL certs (e.g. from Comodo or some other provider)
 
 
@@ -19,6 +18,8 @@ action=
 pull_image=0
 auto_update=0
 send_stats=0
+stats_server=""
+stats_args=()
 api_url=
 dns_check=0
 dryrun=0
@@ -29,8 +30,6 @@ cert_type="letsencrypt"
 eme_img="encryptme/pep"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
 name="encryptme"
-stats_server="http://pep-stats.encryptme.com"
-stats_args=""
 logging=0
 
 # hard-coded
@@ -87,9 +86,11 @@ PRIVACY/SECURITY OPTIONS:
     -U|--update           Run WatchTower to keep VPN container up-to-date
                           (default: off)
     -S|--stats            Send generic bandwidth/health stats (default: off)
-    --stats-server        Specify an alternate http(s) server to receive stats
-    --stats-extra         Include extra details in stats, such as server_id, target_id,
-                          server name (fqdn) and target name (default: off)
+    --stats-server SERVER Specify an alternate http(s) server to receive stats
+    --stats-key    KEY    Optional authorization key for sending stats.
+    --stats-extra         Include extra details in stats, such as server_id,
+                          target_id, server name (fqdn) and target name
+                          (default: off)
 
 
 EXAMPLES:
@@ -179,7 +180,7 @@ server_init() {
         -e ENCRYPTME_SERVER_NAME="$server_name" \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
-        -e ENCRYPTME_STATS_ARGS=$stats_args \
+        -e ENCRYPTME_STATS_ARGS="${stats_args[@]}" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e INIT_ONLY=1 \
         -e DNS_TEST_IP="$dns_test_ip" \
@@ -188,7 +189,6 @@ server_init() {
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         --privileged \
-        --log-driver journald \
         --net host \
         $logging_args \
         "$eme_img"
@@ -244,14 +244,13 @@ server_run() {
         -e DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
-        -e ENCRYPTME_STATS_ARGS=$stats_args \
+        -e ENCRYPTME_STATS_ARGS="${stats_args[@]}" \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --privileged \
-        --log-driver journald \
         --net host \
         --restart always \
         $logging_args \
@@ -337,7 +336,6 @@ while [ $# -gt 0 ]; do
             ;;
         --update|-U)
             auto_update=1
-            # TODO ensure auto-update works w/ locally built images
             ;;
         --pull-image|-P)
             pull_image=1
@@ -346,11 +344,18 @@ while [ $# -gt 0 ]; do
             send_stats=1
             ;;
         --stats-server)
+            [ $# -ge 1 ] || fail "Missing arg to --stats-server"
             stats_server="$1"
             shift
             ;;
         --stats-extra)
-            stats_args="--extra-node-information"
+            stats_args[${#stats_args[*]}]="--extra-node-information"
+            ;;
+        --stats-key)
+            [ $# -ge 1 ] || fail "Missing arg to --stats-key"
+            stats_args[${#stats_args[*]}]="--stats-key"
+            stats_args[${#stats_args[*]}]="$1"
+            shift
             ;;
         --verbose|-v)
             verbose=1
@@ -381,6 +386,8 @@ done
 # setup for run
 # --------------------------------------------------
 # a few sanity checks
+[ $send_stats -eq -a -n "$stats_server" ] && \
+    fail "A stats server (e.g. http://pep-stats.example.com) is required for --stats)"
 cmd which docker > /dev/null || fail "Docker is not installed"
 case "$action" in
     init|run|clean|reset|shell)
