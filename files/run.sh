@@ -11,7 +11,7 @@ ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 ENCRYPTME_DATA_DIR="${ENCRYPTME_DATA_DIR:-$ENCRYPTME_DIR/data}"
 # stats opts
 ENCRYPTME_STATS="${ENCRYPTME_STATS:-0}"
-ENCRYPTME_STATS_SERVER="${ENCRYPTME_STATS_SERVER:-http://pep-stats.encryptme.com/}"
+ENCRYPTME_STATS_SERVER="${ENCRYPTME_STATS_SERVER:-}"
 ENCRYPTME_STATS_ARGS="${ENCRYPTME_STATS_ARGS:-}"
 # helper run-time opts
 DNS_CHECK=${DNS_CHECK:-0}
@@ -84,7 +84,6 @@ cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
 # Run an configured Encrypt.me private end-point server (must have run 'config' first)
 
 set -eo pipefail
-IFS=$'\n\t'
 
 
 case "$1" in
@@ -398,11 +397,13 @@ rem "Configuring and starting strongSwan"
     exit 0
 }
 
-[ $ENCRYPTME_STATS = 1 ] &&
-    rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER" &&
+[ $ENCRYPTME_STATS = 1 -a -n "$ENCRYPTME_STATS_SERVER" ] && {
+    rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER"
     encryptme-stats --server "$ENCRYPTME_STATS_SERVER" $ENCRYPTME_STATS_ARGS &
+}
 
 rem "Start-up complete"
+
 while true; do
     date
     sleep 300

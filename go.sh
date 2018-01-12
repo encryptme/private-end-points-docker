@@ -180,7 +180,7 @@ server_init() {
         -e ENCRYPTME_SERVER_NAME="$server_name" \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
-        -e ENCRYPTME_STATS_ARGS="${stats_args[@]}" \
+        -e ENCRYPTME_STATS_ARGS="$stats_args" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e INIT_ONLY=1 \
         -e DNS_TEST_IP="$dns_test_ip" \
@@ -244,7 +244,7 @@ server_run() {
         -e DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
-        -e ENCRYPTME_STATS_ARGS="${stats_args[@]}" \
+        -e ENCRYPTME_STATS_ARGS="$stats_args" \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -349,12 +349,11 @@ while [ $# -gt 0 ]; do
             shift
             ;;
         --stats-extra)
-            stats_args[${#stats_args[*]}]="--extra-node-information"
+            stats_args="$stats_args --extra-node-information"
             ;;
         --stats-key)
             [ $# -ge 1 ] || fail "Missing arg to --stats-key"
-            stats_args[${#stats_args[*]}]="--stats-key"
-            stats_args[${#stats_args[*]}]="$1"
+            stats_args="$stats_args --auth-key '$1'"
             shift
             ;;
         --verbose|-v)

@@ -1,15 +1,44 @@
 #!/bin/bash -ux
 
-REMOTE_USER=cloak
-REMOTE_HOST=vpn.rng.ninja
-REMOTE_HOST_IP=138.197.97.36
+REG_KEY=
+API_URL=
+SSL_EMAIL=
+PEP_IMAGE=
+BRANCH=
+
+REMOTE_USER=
+REMOTE_HOST=
+REMOTE_HOST_IP=
+
 
 fail() {
     echo "! ${1:-error}" >&1
     exit ${2:-1}
 }
 
-[ $# -ge 1 ] || fail "usage: [REG_KEY=X] $0 init|run|reset|clean|build|cycle [remote]"
+usage() {
+    cat <<EOI
+usage: $0 init|run|reset|clean|build|cycle [remote]
+
+ENV VARS:
+
+    BRANCH
+    REG_KEY
+    API_URL
+    SSL_EMAIL
+    PEP_IMAGE
+    REMOTE_USER  (optional)
+    REMOTE_HOST  (optional)
+    REMOTE_HOST_IP  (optional)
+EOI
+}
+
+
+[ $# -ge 1 ] || {
+    usage
+    fail "no command given"
+}
+
 cd $(dirname "$0")
 
 action="$1"
@@ -17,19 +46,33 @@ where="${2:-local}"
 shift
 shift
 
+[ -n "$REG_KEY" ] && fail "env var REG_KEY not set"
+[ -n "$API_URL" ] && fail "env var API_URL not set"
+[ -n "$SSL_EMAIL" ] && fail "env var SSL_EMAIL not set"
+[ -n "$PEP_IMAGE" ] && fail "env var PEP_IMAGE not set"
+[ -n "$BRANCH" ] && fail "env var BRANCH not set"
+
+[ "$where" = 'remote' ] && {
+    [ -n "$REMOTE_USER" ] && fail "env var REMOTE_USER not set"
+    [ -n "$REMOTE_HOST" ] && fail "env var REMOTE_HOST not set"
+    [ -n "$REMOTE_HOST_IP" ] && fail "env var REMOTE_HOST_IP not set"
+}
+
+
+
 [ $action = "clean" -o $action = "cycle" ] && {
     if [ "$where" = 'remote' ]; then
         ./go.sh clean \
             --remote $REMOTE_USER@$REMOTE_HOST \
-            -v -i encryptme/pep-dev "$@"
+            -v -i $PEP_IMAGE "$@"
     else
         ./go.sh clean \
-            -v -i encryptme/pep-dev "$@"
+            -v -i $PEP_IMAGE "$@"
     fi
 }
 
 [ $action = "build" -o $action = "cycle" ] && {
-    ./build.sh -e dev -b jkf -p
+    ./build.sh -e dev -b $BRANCH -p
 }
 
 [ $action = "init" -o $action = "cycle" ] && {
@@ -42,24 +85,24 @@ shift
             --remote $REMOTE_USER@$REMOTE_HOST \
             init \
             --non-interactive \
-            -e jonathon.fillmore@stackpath.com \
-            --api-url 'http://home.rng.ninja' \
+            -e $SSL_EMAIL \
+            --api-url "$API_URL" \
             --pull-image \
-            -i encryptme/pep-dev \
+            -i $PEP_IMAGE \
             --dns-test-ip "$REMOTE_HOST_IP" \
             --slot-key "$reg_key" \
-            --server-name homebox.$$ \
+            --server-name "$BRANCH-testing.$$" \
             -v \
             "$@" || fail "Failed to init VPN"
     else
         ./go.sh \
             init \
-            -e jonny.fillmore@stackpath.com \
+            -e $SSL_EMAIL \
             --non-interactive \
-            --api-url 'http://docker.for.mac.localhost:8000' \
-            -i encryptme/pep-dev \
+            --api-url "$API_URL" \
+            -i $PEP_IMAGE \
             --slot-key "$reg_key" \
-            --server-name homebox.$$ \
+            --server-name "$BRANCH-testing.$$" \
             -v \
             "$@" || fail "Failed to init VPN"
     fi
@@ -70,18 +113,18 @@ shift
         ./go.sh \
             --remote $REMOTE_USER@$REMOTE_HOST \
             run \
-            --api-url 'http://home.rng.ninja' \
+            --api-url "$API_URL" \
             --stats --stats-extra \
-            -e jonathon.fillmore@stackpath.com \
-            -i encryptme/pep-dev \
+            -e $SSL_EMAIL \
+            -i $PEP_IMAGE \
             -v \
             "$@" || fail "Failed to run VPN"
     else
         ./go.sh run \
-            --api-url 'http://docker.for.mac.localhost:8000' \
+            --api-url "$API_URL" \
             --stats --stats-extra \
-            -e jonny.fillmore@stackpath.com \
-            -i encryptme/pep-dev \
+            -e $SSL_EMAIL \
+            -i $PEP_IMAGE \
             -v \
             "$@" || fail "Failed to run VPN"
     fi
@@ -92,10 +135,10 @@ shift
         ./go.sh \
             --remote $REMOTE_USER@$REMOTE_HOST \
             reset \
-            -v -i encryptme/pep-dev "$@"
+            -v -i $PEP_IMAGE "$@"
     else
         ./go.sh reset \
-            -v -i encryptme/pep-dev "$@"
+            -v -i $PEP_IMAGE "$@"
     fi
 }
 

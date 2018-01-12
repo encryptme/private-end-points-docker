@@ -71,6 +71,8 @@ done
 
 which docker 2>&1 || fail "Failed to locate 'docker' binary"
 cd "$BASE_DIR" || fail "Failed to CD to our base dir?"
+cruft="$(find . -name .\*.sw? | wc -l | awk '{print $1}')"
+[ $cruft -gt 0 ] && fail "$cruft swap file(s) lurk; lets keep things clean"
 
 
 tag="encryptme/pep"
