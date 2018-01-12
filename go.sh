@@ -19,7 +19,7 @@ pull_image=0
 auto_update=0
 send_stats=0
 stats_server=""
-stats_args=()
+stats_args=""
 api_url=
 dns_check=0
 dryrun=0
@@ -353,7 +353,7 @@ while [ $# -gt 0 ]; do
             ;;
         --stats-key)
             [ $# -ge 1 ] || fail "Missing arg to --stats-key"
-            stats_args="$stats_args --auth-key '$1'"
+            stats_args="$stats_args --auth-key $1"
             shift
             ;;
         --verbose|-v)
