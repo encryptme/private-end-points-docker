@@ -1,14 +1,15 @@
 #!/bin/bash -ux
 
-REG_KEY=
-API_URL=
-SSL_EMAIL=
-PEP_IMAGE=
-BRANCH=
+REG_KEY="${REG_KEY:-}"
+API_URL="${API_URL:-}"
+SSL_EMAIL="${SSL_EMAIL:-}"
+PEP_IMAGE="${PEP_IMAGE:-}"
+BRANCH="${BRANCH:-}"
+STATS_SERVER="${STATS_SERVER:-}"
 
-REMOTE_USER=
-REMOTE_HOST=
-REMOTE_HOST_IP=
+REMOTE_USER="${REMOTE_USER:-}"
+REMOTE_HOST="${REMOTE_HOST:-}"
+REMOTE_HOST_IP="${REMOTE_HOST_IP:-}"
 
 
 fail() {
@@ -46,28 +47,29 @@ where="${2:-local}"
 shift
 shift
 
-[ -n "$REG_KEY" ] && fail "env var REG_KEY not set"
-[ -n "$API_URL" ] && fail "env var API_URL not set"
-[ -n "$SSL_EMAIL" ] && fail "env var SSL_EMAIL not set"
-[ -n "$PEP_IMAGE" ] && fail "env var PEP_IMAGE not set"
-[ -n "$BRANCH" ] && fail "env var BRANCH not set"
+[ -n "$API_URL" ] || fail "env var API_URL not set"
+[ -n "$SSL_EMAIL" ] || fail "env var SSL_EMAIL not set"
+[ -n "$PEP_IMAGE" ] || fail "env var PEP_IMAGE not set"
+[ -n "$BRANCH" ] || fail "env var BRANCH not set"
 
-[ "$where" = 'remote' ] && {
-    [ -n "$REMOTE_USER" ] && fail "env var REMOTE_USER not set"
-    [ -n "$REMOTE_HOST" ] && fail "env var REMOTE_HOST not set"
-    [ -n "$REMOTE_HOST_IP" ] && fail "env var REMOTE_HOST_IP not set"
+[ "$where" = 'remote' ] || {
+    [ -n "$REMOTE_USER" ] || fail "env var REMOTE_USER not set"
+    [ -n "$REMOTE_HOST" ] || fail "env var REMOTE_HOST not set"
+    [ -n "$REMOTE_HOST_IP" ] || fail "env var REMOTE_HOST_IP not set"
 }
 
 
 
 [ $action = "clean" -o $action = "cycle" ] && {
     if [ "$where" = 'remote' ]; then
-        ./go.sh clean \
-            --remote $REMOTE_USER@$REMOTE_HOST \
-            -v -i $PEP_IMAGE "$@"
+        ./go.sh --remote "$REMOTE_USER@$REMOTE_HOST" \
+            clean \
+            -v -i $PEP_IMAGE "$@" \
+            || fail "Failed to perform --remote clean"
     else
         ./go.sh clean \
-            -v -i $PEP_IMAGE "$@"
+            -v -i $PEP_IMAGE "$@" \
+            || fail "Failed to perform clean"
     fi
 }
 
@@ -114,7 +116,10 @@ shift
             --remote $REMOTE_USER@$REMOTE_HOST \
             run \
             --api-url "$API_URL" \
-            --stats --stats-extra \
+            --stats \
+            --stats-extra \
+            --stats-server "$STATS_SERVER" \
+            --stats-key "$STATS_KEY" \
             -e $SSL_EMAIL \
             -i $PEP_IMAGE \
             -v \
@@ -122,7 +127,10 @@ shift
     else
         ./go.sh run \
             --api-url "$API_URL" \
-            --stats --stats-extra \
+            --stats \
+            --stats-extra \
+            --stats-server "$STATS_SERVER" \
+            --stats-key "$STATS_KEY" \
             -e $SSL_EMAIL \
             -i $PEP_IMAGE \
             -v \
