@@ -5,6 +5,7 @@ export PATH
 
 cd /etc/encryptme/pki
 
+sleep $(($RANDOM % 300))
 cloak-server --config /etc/encryptme/encryptme.conf --quiet crls \
     --infile crl_urls.txt \
     --out crls \
