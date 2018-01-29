@@ -71,7 +71,7 @@ GENERIC OPTIONS:
                           (default: $cert_type)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
-    --safe-pep		  Enable Adware/Malware block
+    -s|--safe-pep	  Enable Adware/Malware block
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -366,7 +366,7 @@ while [ $# -gt 0 ]; do
         --logging|-l)
             logging=1
             ;;
-        --safe-pep)
+        --safe-pep|-s)
             safe_pep=1
             ;;
         --remote|-r)
