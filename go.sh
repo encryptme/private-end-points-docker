@@ -27,10 +27,11 @@ non_interactive=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
-eme_img="encryptme/pep"  # TODO: finalize w/ Encryptme hub account
+eme_img="encryptme/safe-pep"
 wt_image="v2tec/watchtower"
 name="encryptme"
 logging=0
+safe_pep=0
 
 # hard-coded
 wt_image_name="watchtower"
@@ -70,6 +71,7 @@ GENERIC OPTIONS:
                           (default: $cert_type)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
+    --safe-pep		  Enable Adware/Malware block
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -183,6 +185,7 @@ server_init() {
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e INIT_ONLY=1 \
+        -e SAFE_PEP=$safe_pep \
         -e DNS_TEST_IP="$dns_test_ip" \
         -e DNS_CHECK=$dns_check \
         -v "$conf_dir:/etc/encryptme" \
@@ -245,6 +248,7 @@ server_run() {
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
+        -e SAFE_PEP=$safe_pep \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -361,6 +365,9 @@ while [ $# -gt 0 ]; do
             ;;
         --logging|-l)
             logging=1
+            ;;
+        --safe-pep)
+            safe_pep=1
             ;;
         --remote|-r)
             [ $arg_count -ne 0 ] && fail "If using --remote|-r it must be the first argument"
