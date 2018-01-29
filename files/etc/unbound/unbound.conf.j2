@@ -6,7 +6,7 @@ server:
     use-syslog: no
     logfile: ""
 
-{% if safepep %}
+{% if safepep == '1' %}
 include: /etc/unbound/hostfiles/adware-malware.conf
 {% endif %}
 
