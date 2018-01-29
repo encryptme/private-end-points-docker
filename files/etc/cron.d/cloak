@@ -1,3 +1,4 @@
 @daily root /bin/update-pki.sh
 * * * * * root /bin/refresh-crls.sh
 * * 1,20 * * /usr/bin/certbot renew --deploy-hook /bin/update-certificate.sh -q > /dev/null 2>&1
+01 01 * * * /bin/adware-malware-hostfile-pull.sh > /dev/null 2>&1

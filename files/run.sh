@@ -293,6 +293,12 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
 
 fi
 
+#Generate unbound configs
+/bin/template.py \
+    -d "$ENCRYPTME_DATA_DIR/server.json" \
+    -s /etc/unbound/unbound.conf.j2 \
+    -o /etc/unbound/unbound.conf \
+    -v safepep=$SAFE_PEP
 
 # Start services
 if [ -x /usr/sbin/crond ]; then
