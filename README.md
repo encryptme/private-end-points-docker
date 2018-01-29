@@ -81,7 +81,7 @@ GENERIC OPTIONS:
                           (default: letsencrypt)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
-    --safe-pep		        Enable Adware/Malware block
+    --safe-pep		  Enable Adware/Malware block
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
