@@ -108,7 +108,10 @@ EXAMPLES:
     # launch an auto-updating image with health reporting using the official
     # image and ensure our AWS/DO public IP matches our FQDN
     ./go.sh init -S -U -P -D
-
+    
     # run the newly initialized server
     ./go.sh run
+    
+    # launch a safe private endpoint (with Ad and malware block)
+    ./go.sh run --safe-pep
 ```
