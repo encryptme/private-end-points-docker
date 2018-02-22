@@ -10,20 +10,20 @@ fail() {
 
 usage() {
     cat <<EOI
-Usage: $SCRIPT_NAME [ARGUMENTS] [DOCKER ARGS]
-(e.g.)
+Usage: $SCRIPT_NAME [OPTIONS] [DOCKER ARGS]
 
 OPTIONS:
-    -b|--branch REPO      Override branch for PEP client and stats repos
-    -e|--env ENV          Env to build/push (dev, stage, prod) (default: $env)
-    -h|--help             This information
-    -t|--tag TAG          Override image tag
-    -p|--push             Automatically push to Docker hub
-    -t|--tag              Specify explicit tag (overrides --env)
+
+  -b|--branch REPO   Branch for client and stats repos (default: based on env)
+  -e|--env ENV       Env to build/push (dev, stage, prod) (default: $env)
+  -h|--help          This information
+  -t|--tag TAG       Override image tag
+  -p|--push          Automatically push to Docker hub
+  -t|--tag           Specify explicit tag (overrides --env)
 
 EXAMPLE:
 
-  \$ $SCRIPT_NAME -e stage -b jkf
+  \$ $SCRIPT_NAME --env dev --branch master --tag jsmith/encryptme-pep --push
 EOI
 }
 
@@ -71,8 +71,6 @@ done
 
 which docker 2>&1 || fail "Failed to locate 'docker' binary"
 cd "$BASE_DIR" || fail "Failed to CD to our base dir?"
-cruft="$(find . -name .\*.sw? | wc -l | awk '{print $1}')"
-[ $cruft -gt 0 ] && fail "$cruft swap file(s) lurk; lets keep things clean"
 
 
 tag="encryptme/pep"
