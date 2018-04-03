@@ -12,8 +12,8 @@ RUN pip install --upgrade pip && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
-LABEL version=0.9.12
-RUN echo "v0.9.12" > /container-version-id
+LABEL version=0.9.13
+RUN echo "v0.9.13" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip

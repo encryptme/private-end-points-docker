@@ -1,4 +1,4 @@
 #min	hour	day/month	month	day/week
 @daily root /bin/update-pki.sh
 */5 * * * * root /bin/refresh-crls.sh
-0 0 1,15 * * /usr/bin/certbot renew --deploy-hook /bin/update-certificate.sh -q > /dev/null 2>&1
+0 0 1,15 * * root /usr/bin/certbot renew --deploy-hook /bin/update-certificate.sh -q > /dev/null 2>&1
