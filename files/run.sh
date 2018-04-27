@@ -294,11 +294,11 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
 fi
 
 #Generate unbound configs
-/bin/template.py \
-    -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/unbound/unbound.conf.j2 \
-    -o /etc/unbound/unbound.conf \
-    -v safepep=$SAFE_PEP
+#/bin/template.py \
+#    -d "$ENCRYPTME_DATA_DIR/server.json" \
+#    -s /etc/unbound/unbound.conf.j2 \
+#    -o /etc/unbound/unbound.conf \
+#    -v safepep=$SAFE_PEP
 
 # Start services
 if [ -x /usr/sbin/crond ]; then
@@ -306,7 +306,7 @@ if [ -x /usr/sbin/crond ]; then
 else
     rundaemon cron
 fi
-rundaemon unbound -d &
+rundaemon /usr/local/unbound-1.7/sbin/unbound -c /usr/local/unbound-1.7/etc/unbound/unbound.conf -d &>/dev/null &
 
 # Silence warning
 chmod 700 /etc/encryptme/pki/cloak.pem
@@ -322,13 +322,13 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
 done
 
 # generate IP tables rules
-/bin/template.py \
-    -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.j2 \
-    -o /etc/iptables.rules \
-    -v ipaddress=$DNS
+#/bin/template.py \
+#    -d "$ENCRYPTME_DATA_DIR/server.json" \
+#    -s /etc/iptables.rules.j2 \
+#    -o /etc/iptables.rules \
+#    -v ipaddress=$DNS
 # TODO this leaves extra rules around
-/sbin/iptables-restore --noflush < /etc/iptables.rules
+#/sbin/iptables-restore --noflush < /etc/iptables.rules
 
 
 rem "Configuring and launching OpenVPN"

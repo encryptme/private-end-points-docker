@@ -4,7 +4,7 @@ RUN yum clean all && \
     yum -y -q update && \
     yum -y -q install epel-release && yum -y update && \
     yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git knot jq gcc bind-utils && \
-    yum -y -q install unbound openvpn strongswan kmod letsencrypt vim curl socat wget perl-JSON-PP.noarch && \
+    yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat wget perl-JSON-PP.noarch && \
     rm -rf /var/cache/yum
 
 ARG repo_branch=${repo_branch:-master}
@@ -24,5 +24,6 @@ ENV DISABLE_LETSENCRYPT 0
 ARG build_time=${build_time:-x}
 ADD files/ /
 
+RUN useradd -s /sbin/nologin unbound
 
 ENTRYPOINT ["/run.sh"]

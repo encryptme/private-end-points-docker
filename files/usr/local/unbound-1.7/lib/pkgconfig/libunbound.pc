@@ -1,0 +1,13 @@
+prefix=/usr/local/unbound-1.7
+exec_prefix=/usr/local/unbound-1.7
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: unbound
+Description: Library with validating, recursive, and caching DNS resolver
+URL: http://www.unbound.net
+Version: 1.7.0
+Requires: libcrypto libssl  python
+Libs: -L${libdir} -lunbound
+Libs.private: -lssl -L/usr/lib64 -L/usr/lib64/python2.7 -L. -lpython2.7 -lcrypto
+Cflags: -I${includedir} 

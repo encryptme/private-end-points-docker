@@ -27,7 +27,7 @@ non_interactive=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
-eme_img="encryptme/safe-pep"
+eme_img="encryptme/safe-pep:v2"
 wt_image="v2tec/watchtower"
 name="encryptme"
 logging=0
@@ -432,6 +432,19 @@ esac
 #    /sbin/sysctl -p /etc/sysctl.conf
 }
 
+load_iptables () {
+    if [ ! -f /etc/iptables.save ]; then
+       ./template.py \
+       -d "/etc/encryptme/data/server.json" \
+       -s iptables.rules.j2 \
+       -o /etc/iptables.save
+    fi
+    /sbin/iptables-restore < /etc/iptables.save
+
+    if [ -f /etc/ipset.save ]; then
+        /usr/sbin/ipset restore < /etc/ipset.save
+    fi
+}
 
 # perform the main action
 # --------------------------------------------------
@@ -446,6 +459,7 @@ esac
     }
     rem "starting $name container"
     server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
+    load_iptables || fail "Failed to load iptable rules"
 }
 
 [ "$action" = "shell" ] && {
