@@ -146,9 +146,10 @@ whitelist_ip () {
 }
 
 whitelist_domain () {
-    docker exec -it encryptme grep "$whitelist_me" /usr/local/unbound-1.7/etc/unbound/whitelist.txt
+    docker exec -it encryptme grep -q "$whitelist_me" /usr/local/unbound-1.7/etc/unbound/whitelist.txt
     if [ $? -eq 1 ]; then
        docker exec -it encryptme bash -c "echo "$whitelist_me" >> /usr/local/unbound-1.7/etc/unbound/whitelist.txt"
+       reload_unboud
     else
        fail "$whitelist_me exists in whitelist"
     fi

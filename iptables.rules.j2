@@ -11,6 +11,9 @@
 :DOCKER-ISOLATION - [0:0]
 :DOCKER-USER - [0:0]
 
+# SSH
+-A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+
 -A FORWARD -j DOCKER-USER
 -A FORWARD -j DOCKER-ISOLATION
 -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
@@ -39,9 +42,6 @@
 -I ENCRYPTME -p icmp --icmp-type echo-request -m recent --update --seconds 5 --hitcount 10 -j DROP
 -A ENCRYPTME -p icmp -j ACCEPT
 
-# SSH
--A ENCRYPTME -p tcp -m tcp --dport 22 -j ACCEPT
-
 # OpenVPN
 {% for config in cloak_server.target.openvpn %}
 -A ENCRYPTME -p {{config.proto}} --dport {{config.port}} -j ACCEPT
@@ -60,7 +60,7 @@
 -A ENCRYPTME -s 100.64.0.0/10 -j ACCEPT
 
 #VPN traffic pass through
--A FORWARD -j ENCRYPTME
+-I FORWARD -j ENCRYPTME
 #-A FORWARD -d 100.64.0.0/10 -j ENCRYPTME
 COMMIT
 

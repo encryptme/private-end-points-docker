@@ -439,12 +439,15 @@ load_iptables () {
        -s iptables.rules.j2 \
        -o /etc/iptables.save
     fi
-    /sbin/iptables-restore < /etc/iptables.save
 
     if [ -f /etc/ipset.save ]; then
+        /sbin/iptables -F ENCRYPTME
+        /usr/sbin/ipset destroy
         /usr/sbin/ipset restore < /etc/ipset.save
     fi
+    /sbin/iptables-restore < /etc/iptables.save
 }
+
 
 # perform the main action
 # --------------------------------------------------
@@ -458,8 +461,8 @@ load_iptables () {
         server_watch || fail "Failed to start Docker watchtower"
     }
     rem "starting $name container"
-    server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
     load_iptables || fail "Failed to load iptable rules"
+    server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
 }
 
 [ "$action" = "shell" ] && {
