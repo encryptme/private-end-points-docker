@@ -2,8 +2,7 @@
 charon {
     # You should push DNS servers with public IPs, so that all queries will be
     # routed through the tunnel.
-    dns1 = 8.8.8.8
-    dns2 = 8.8.4.4
+    dns1 = {% if cloak_server.proto=='udp' %}100.64.0.1{% else %}100.64.64.1{% endif %}
 
     # https://wiki.strongswan.org/projects/strongswan/wiki/LoggerConfiguration
     syslog {
