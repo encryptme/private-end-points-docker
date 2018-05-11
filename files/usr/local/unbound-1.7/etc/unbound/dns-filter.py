@@ -17,17 +17,29 @@ def file_to_domains(filename):
             yield entry.strip()
 
 def load_blacklists():
-    is_blacklist_file = lambda f: \
-        isfile(join(BLACKLISTS_LOCATION, f)) \
-        and f.endswith('.txt')
-    files = [f for f in listdir(BLACKLISTS_LOCATION) if is_blacklist_file(f)]
-    for filename in files:
-        for domain in file_to_domains(join(BLACKLISTS_LOCATION, filename)):
-            blacklist.add(domain)
+    try:
+        is_blacklist_file = lambda f: \
+            isfile(join(BLACKLISTS_LOCATION, f)) \
+            and f.endswith('.txt')
+        files = [f for f in listdir(BLACKLISTS_LOCATION) if is_blacklist_file(f)]
+        for filename in files:
+            for domain in file_to_domains(join(BLACKLISTS_LOCATION, filename)):
+                blacklist.add(domain)
+    except OSError as e:
+        if e.errno == 2: # OSError: [Errno 2] No such file or directory: 'fdas', FileNotFoundError for Python 3
+            log_err("missing file:" + e.filename)
+        else:
+            raise
 
 def load_whitelist():
-    for domain in file_to_domains(WHITELIST_FILE):
+    try:
+        for domain in file_to_domains(WHITELIST_FILE):
             whitelist.add(domain)
+    except IOError as e:
+        if e.errno == 2: #  IOError: [Errno 2] No such file or directory: 'fdsfsd', FileNotFoundError for Python 3
+            log_err("missing file:" + e.filename)
+        else:
+            raise
 
 def check_name(name, xlist):
     while True:
@@ -57,15 +69,15 @@ def operate(id, event, qstate, qdata):
         # Check if whitelisted.
         name = qstate.qinfo.qname_str.rstrip('.')
 
-#        log_info("dns_filter.py: Checking "+name)
+        #        log_info("dns_filter.py: Checking "+name)
 
         if (check_name(name, whitelist)):
-#            log_info("dns_filter.py: "+name+" whitelisted")
+            #            log_info("dns_filter.py: "+name+" whitelisted")
             qstate.ext_state[id] = MODULE_WAIT_MODULE
             return True
 
         if (check_name(name, blacklist)):
-#            log_info("dns_filter.py: "+name+" blacklisted")
+            #            log_info("dns_filter.py: "+name+" blacklisted")
 
             msg = DNSMessage(qstate.qinfo.qname_str, RR_TYPE_A, RR_CLASS_IN, PKT_QR | PKT_RA | PKT_AA)
             if (qstate.qinfo.qtype == RR_TYPE_A) or (qstate.qinfo.qtype == RR_TYPE_ANY):
@@ -86,7 +98,7 @@ def operate(id, event, qstate, qdata):
             return True
 
     if event == MODULE_EVENT_MODDONE:
-#        log_info("pythonmod: iterator module done")
+        #        log_info("pythonmod: iterator module done")
         qstate.ext_state[id] = MODULE_FINISHED
         return True
 
