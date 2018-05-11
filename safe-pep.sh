@@ -81,7 +81,8 @@ do
     esac
 done
 
-unbound_list="/usr/local/unbound-1.7/etc/unbound/blacklists/$list_name.txt"
+blacklist_location="/usr/local/unbound-1.7/etc/unbound/blacklists"
+unbound_list="$blacklist_location/$list_name.txt"
 
 check_extenxion () {
     if [ ${list_file: -4} != ".txt" ];then
@@ -120,6 +121,12 @@ reload_unboud () {
 
 do_domain () {
     new_list="$1"
+    docker exec -i encryptme bash -c "[ -d $blacklist_location ]"
+    if [ $? -eq 1 ]; then
+       docker exec -i encryptme mkdir -p $blacklist_location \
+	  || fail "Failed to create blacklists directory"
+    fi
+
     docker exec -i encryptme bash -c "[ -f $unbound_list ]"
     if [ $? -eq 0 ]; then
        docker exec -i encryptme cat "$unbound_list" >> "$new_list"
