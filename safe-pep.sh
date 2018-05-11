@@ -10,7 +10,8 @@ ACTIONS:
 
     add    	add IP list to the ipset
     whitelist   whitelist an IP or domain
-    clear   	destroy ipset and delete all iptables references
+    delete   	delete an ipset or domain list and all iptables references
+    destroy	remove all ipsets and domains lists
 
 ADD OPTIONS:
     -l		list name
@@ -25,14 +26,17 @@ CLEAR OPTIONS:
 
 EXAMPLES:
 
-    # Add the list 'security' to ipset
-    ./$script_name add -l security -f /opt/lists/security
+    # Add the list 'security'
+    ./$script_name add -l security -f /opt/lists/security.txt
     
-    # Remove an IP from list 'security'
-    ./$script_name whitelist -l security -w 1.1.1.1
+    # Whitelist an IP or domain
+    ./$script_name whitelist -w 1.1.1.1
 
     # Delete the list 'security' completely
-    ./$script_name clear -l security
+    ./$script_name delete -l security
+
+    # Delete evrrything
+    ./$script_name destroy
 
 EOF
 
@@ -44,7 +48,7 @@ fail() {
 }
 
 case "$1" in
-    add|whitelist|clear)
+    add|whitelist|delete|destroy)
         action=$1
         ;;
     *)
@@ -120,7 +124,7 @@ do_domain () {
        || fail "Failed to reload unbound daemon"
 }
 
-destroy_list () {
+delete_list () {
     /sbin/ipset list | grep -q -w "$list_name"
     if [ $? -eq 0 ]; then
        /sbin/iptables-save | grep -q -w "$list_name"
@@ -139,6 +143,27 @@ destroy_list () {
     else
        echo "$unbound_list not found"
     fi
+}
+
+destroy_list () {
+    exisitng_lists=$(/sbin/ipset list | grep Name | awk '{ print $2}')
+    for list in $exisitng_lists
+    do
+       if [ "$list" == "whitelist" ]; then
+	  /sbin/iptables -D ENCRYPTME -m set --match-set "$list" dst -j ACCEPT \
+             || fail "Failed to delete iptables rule for the list $list"
+       docker exec -i encryptme truncate -s 0 /usr/local/unbound-1.7/etc/unbound/whitelist.txt \
+          || fail "Failed to delete domain list $list.txt"
+       else
+          /sbin/iptables -D ENCRYPTME -m set --match-set "$list" dst -j DROP \
+	      || fail "Failed to delete iptables rule for the list $list"
+       fi
+       /sbin/ipset destroy "$list" \
+          || fail "Failed to delete ipset $list"
+       docker exec -i encryptme rm -f /usr/local/unbound-1.7/etc/unbound/blacklists/"$list.txt" \
+          || fail "Failed to delete domain list $list.txt"
+    done
+    reload_unboud
 }
 
 whitelist_ip () {
@@ -208,9 +233,9 @@ check_for_list_name() {
     do_filter
 }
 
-[ "$action" = "clear" ] && {
+[ "$action" = "delete" ] && {
     check_for_list_name
-    destroy_list
+    delete_list
 }
 
 [ "$action" = "whitelist" ] && {
@@ -226,6 +251,10 @@ check_for_list_name() {
     else
        whitelist_domain
     fi    
+}
+
+[ "$action" = "destroy" ] && {
+    destroy_list
 }
 
 /usr/sbin/iptables-save > /etc/iptables.save \
