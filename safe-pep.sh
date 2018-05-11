@@ -83,6 +83,12 @@ done
 
 unbound_list="/usr/local/unbound-1.7/etc/unbound/blacklists/$list_name.txt"
 
+check_extenxion () {
+    if [ ${list_file: -4} != ".txt" ];then
+       fail "Wrong file extension"
+    fi
+}
+
 do_ip () {
     new_list="$1"
     ipset list "$list_name" | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' | sort -u > work/tmp/$list_name.current.ips
@@ -227,9 +233,10 @@ check_for_list_name() {
        fail "No list name set"
     }
 }
-
+    
 [ "$action" = "add" ] && {
     check_for_list_name
+    check_extenxion
     do_filter
 }
 
