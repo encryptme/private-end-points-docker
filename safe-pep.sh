@@ -8,21 +8,20 @@ usage: $script_name ACTION ARGS
 
 ACTIONS:
 
-    add    	add IP list to the ipset
-    whitelist   whitelist an IP or domain
-    delete   	delete an ipset or domain list and all iptables references
-    destroy	remove all ipsets and domains lists
+    add    	Import a list of IP addresses or domains
+    whitelist   Whitelist an IP or domain
+    delete   	Delete an ipset or domain list and all iptables references
+    destroy	Remove all ipsets and domains lists
 
 ADD OPTIONS:
-    -l		list name
-    -f      	file to import
+    -l		List name to create or modify
+    -f      	Source file to import
 
 WHITELIST OPTIONS:
-    -l          list name
     -w 		IP address or domain to whitelist
 
-CLEAR OPTIONS:
-    -l       	list name
+DELETE OPTIONS:
+    -l       	List name to delete
 
 EXAMPLES:
 
