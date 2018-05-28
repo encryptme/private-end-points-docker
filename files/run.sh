@@ -300,13 +300,20 @@ fi
 #    -o /etc/unbound/unbound.conf \
 #    -v safepep=$SAFE_PEP
 
+tar zxf /usr/local/unbound-1.7.tar.gz -C /usr/local/
+rm -f /usr/local/unbound-1.7.tar.gz
+
+if [ $SAFE_PEP -eq 1 ]; then
+    /usr/local/unbound-1.7/sbin/dns-filter start
+fi
+
 # Start services
 if [ -x /usr/sbin/crond ]; then
     rundaemon crond
 else
     rundaemon cron
 fi
-rundaemon /usr/local/unbound-1.7/sbin/unbound -c /usr/local/unbound-1.7/etc/unbound/unbound.conf -d &>/dev/null &
+rundaemon /usr/local/unbound-1.7/sbin/unbound -c /usr/local/unbound-1.7/etc/unbound/unbound.conf
 
 # Silence warning
 chmod 700 /etc/encryptme/pki/cloak.pem

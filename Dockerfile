@@ -10,6 +10,7 @@ RUN yum clean all && \
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
+    pip install sander-daemon && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
 LABEL version=0.9.11

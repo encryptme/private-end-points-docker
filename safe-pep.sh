@@ -138,10 +138,9 @@ do_ip () {
     fi
 }
 
-reload_unboud () {
-    local unbound_pid=$(docker exec -i encryptme cat /usr/local/unbound-1.7/etc/unbound/unbound.pid)
-    docker exec -i encryptme kill -9 "$unbound_pid"
-    docker exec -i encryptme /usr/local/unbound-1.7/sbin/unbound -c /usr/local/unbound-1.7/etc/unbound/unbound.conf -d &
+reload_filter () {
+    docker exec -i encryptme /usr/local/unbound-1.7/sbin/dns-filter stop &> /dev/null
+    docker exec -i encryptme /usr/local/unbound-1.7/sbin/dns-filter start &> /dev/null
 }
 
 do_domain () {
@@ -158,8 +157,8 @@ do_domain () {
     fi
     sort -u "$new_list" | docker exec -i encryptme dd of="$unbound_list" \
        || fail "Failed to write $unbound_list"
-    reload_unboud \
-       || fail "Failed to reload unbound daemon"
+    reload_filter \
+       || fail "Failed to reload dns-filter"
 }
 
 delete_list () {
@@ -188,7 +187,7 @@ delete_list () {
     docker exec -i encryptme bash -c "[ -f $unbound_list ]"
     if [ $? -eq 0 ]; then
        docker exec -i encryptme rm -f "$unbound_list"
-       reload_unboud
+       reload_filter
     else
        echo "$unbound_list not found"
     fi
@@ -212,7 +211,7 @@ destroy_list () {
     done
     docker exec -i encryptme rm -rf $blacklist_location \
        || fail "Failed to delete domain lists"
-    reload_unboud
+    reload_filter
 }
 
 whitelist_ip () {
@@ -230,7 +229,7 @@ whitelist_domain () {
     if [ $? -eq 1 ]; then
        docker exec -it encryptme bash -c "echo "$whitelist_me" >> /usr/local/unbound-1.7/etc/unbound/whitelist.txt" \
 	  || fail "Failed to whitelist domain $whitelist_me"
-       reload_unboud || fail "Failed to reload unbound daemon"
+       reload_filter || fail "Failed to reload dns-filter"
     else
        fail "$whitelist_me exists in whitelist"
     fi
@@ -325,4 +324,5 @@ check_for_list_name() {
 /usr/sbin/ipset save > /etc/ipset.save \
    || fail "Failed to write /etc/ipset.save"
 
+rm -rf work/tmp
 exit 0
