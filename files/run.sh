@@ -285,11 +285,9 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     cp "/etc/letsencrypt/live/$FQDN/fullchain.pem" \
         /etc/strongswan/ipsec.d/certs/letsencrypt.pem \
         || fail "Failed to copy letsencrypt.pem to IPSec config dir"
-
     cp "/etc/letsencrypt/live/$FQDN/chain.pem" \
         /etc/strongswan/ipsec.d/cacerts/letsencrypt.pem \
         || fail "Failed to copy letsencrypt chain.pem to IPSec config dir"
-
 
 fi
 
