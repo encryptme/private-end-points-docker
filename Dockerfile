@@ -7,8 +7,8 @@ RUN yum clean all && \
     yum -y -q install unbound openvpn strongswan kmod letsencrypt vim curl socat perl-JSON-PP.noarch && \
     rm -rf /var/cache/yum
 
-LABEL version=0.9.14
-RUN echo "v0.9.14" > /container-version-id
+LABEL version=0.10
+RUN echo "v0.10.1" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
