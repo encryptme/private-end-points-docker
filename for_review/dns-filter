@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from contextlib import closing
 import socket
 import os
 import sys
@@ -9,88 +10,79 @@ import json
 from daemon import Daemon
 from os.path import join
 
-blacklist_location = "/usr/local/unbound-1.7/etc/unbound/blacklists"
-whitelist_file = "/usr/local/unbound-1.7/etc/unbound/whitelist.txt"
-run_dir = "/usr/local/unbound-1.7/etc/unbound/var/run"
-socket_file = "/usr/local/unbound-1.7/etc/unbound/var/run/dns_filter.sock"
-uid = pwd.getpwnam("unbound").pw_uid
-gid = grp.getgrnam("unbound").gr_gid
+# This should go to configurations
+PWD = "/usr/local/unbound-1.7/etc/unbound/"
+run_dir = f"{PWD}var/run/"
+socket_file = f"{run_dir}dns_filter.sock"
 
-if not os.path.exists(run_dir):
-    os.makedirs(run_dir)
 
-blacklist = set()
-whitelist = set()
+class FileList():
+    """
+    """
+    def __get_entry(file):
+        with open(file) as fyl:
+            for entry in fyl:
+                yield entry.strip()
 
-def file_to_domains(file):
-    with open(file) as fyl:
-        for entry in fyl:
-            yield entry.strip()
+    def load(self, pwd=None):
+        if pwd:
+            self.pwd = pwd
+        try:
+            for file in os.listdir(pwd):
+                if file.endswith('.txt'):
+                    for domain in self.__get_entry(join(pwd, file)):
+                        self.entries.add(domain)
+        except OSError as e:
+            if e.errno == 2:
+                print("Missing directory: " + e.filename)
+            else:
+                raise
 
-def load_blacklists():
-    try:
-        for file in os.listdir(blacklist_location):
-            if file.endswith('.txt'):
-                for domain in file_to_domains(join(blacklist_location, file)):
-                    blacklist.add(domain)
-    except OSError as e:
-        if e.errno == 2:
-            print("Missing directory: " + e.filename)
-        else:
-            raise
+    def __init__(self, pwd=PWD, _type):
+        """
+        Build entries from file.
+        """
+        self.type = _type
+        self.load(pwd)
 
-def load_whitelist():
-    try:
-        for domain in file_to_domains(whitelist_file):
-            whitelist.add(domain)
-    except IOError as e:
-        if e.errno == 2:
-            print("Missing file: " + e.filename)
-        else:
-            raise
+    def response(self, domain_type, domain, conn):
+        if domain_type in self.type:
+            if domain in self.entries:
+                resp = True
+            else:
+                resp = False
+            conn.sendall(json.dumps(resp))
 
-def check_name(domain, domain_list):
-    if domain_list == 'blacklist':
-        if (domain in blacklist):
-            return True
-        else:
-            return False
-
-    if domain_list == 'whitelist':
-        if (domain in whitelist):
-            return True
-        else:
-            return False
-
-load_whitelist()
-load_blacklists()
-
-def dns_filter():
-    try:
-    	os.unlink(socket_file)
-    except OSError:
-    	if os.path.exists(socket_file):
-            raise
-
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.bind(socket_file)
-    sock.listen(1)
-    os.chown(socket_file, uid, gid)
-
-    while True:
-    	connection, client_address = sock.accept()
-    	try:
-            data = connection.recv(2048)
-            data = json.loads(data)
-       	    print (data)
-            domain_check_result = check_name(data['domain'].strip(), data['domain_list'].strip())
-    	    connection.sendall(json.dumps(domain_check_result))
-    	finally:
-            connection.close()
 
 class run_filter(Daemon):
     def run(self):
-    	dns_filter()
+        blacklist = FileList(pwd=f"{PWD}/blacklist", _type="blacklist")
+        whitelist = FileList(pwd=f"{PWD}/whitelist", _type="whitelist")
+        try:
+            os.unlink(socket_path)
+        except OSError:
+            if os.path.exists(socket_path):
+                raise
+        sock = socket.socket()
+        with closing(sock):
+            sock.bind(socket_path)
+            sock.listen(1)
+            if not os.path.exists(run_dir):
+                os.makedirs(run_dir)
+            uid = pwd.getpwnam("unbound").pw_uid
+            gid = grp.getgrnam("unbound").gr_gid
+            os.chown(socket_path, uid, gid)
+            while True:
+                connection, address = sock.accept()
+                with closing(connection):
+                    data = connection.recv(2048)
+                    data = json.loads(data)
+                    print(data)
+                    for list_obj in [blacklist, whitelist]:
+                        list_obj.response(data['domain_list'].strip(),
+                                          data['domain'].strip(),
+                                          connection)
+
 
 pid_file = "/usr/local/unbound-1.7/etc/unbound/var/run/dns-filter.pid"
 
@@ -101,19 +93,19 @@ if __name__ == "__main__":
         if 'start' == sys.argv[1]:
             try:
                 daemon.start()
-            except:
+            except Exception as e:
                 pass
 
         elif 'stop' == sys.argv[1]:
             daemon.stop()
-	    os.unlink(socket_file)
+            os.unlink(socket_file)
 
         elif 'restart' == sys.argv[1]:
             daemon.restart()
 
         elif 'status' == sys.argv[1]:
             try:
-                pf = file(pid_file,'r')
+                pf = file(pid_file, 'r')
                 pid = int(pf.read().strip())
                 pf.close()
             except IOError:
@@ -132,5 +124,4 @@ if __name__ == "__main__":
             sys.exit(0)
     else:
         print "usage: %s start|stop|restart|status" % sys.argv[0]
-	sys.exit(2)
-
+        sys.exit(2)
