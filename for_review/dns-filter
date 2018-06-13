@@ -12,8 +12,8 @@ from os.path import join
 
 # This should go to configurations
 PWD = "/usr/local/unbound-1.7/etc/unbound/"
-run_dir = f"{PWD}var/run/"
-socket_file = f"{run_dir}dns_filter.sock"
+run_dir = "{PWD}var/run/".format(PWD=PWD)
+socket_path = "{run_dir}dns_filter.sock".format(run_dir=run_dir)
 
 
 class FileList():
@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
         elif 'stop' == sys.argv[1]:
             daemon.stop()
-            os.unlink(socket_file)
+            os.unlink(socket_path)
 
         elif 'restart' == sys.argv[1]:
             daemon.restart()
