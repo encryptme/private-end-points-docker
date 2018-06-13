@@ -3,12 +3,10 @@
 from contextlib import closing
 import socket
 import os
-import sys
 import grp
 import pwd
 import json
 from daemon import Daemon
-from os.path import join
 
 # This should go to configurations
 PWD = "/usr/local/unbound-1.7/etc/unbound/"
