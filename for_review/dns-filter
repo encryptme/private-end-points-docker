@@ -58,7 +58,7 @@ class FileList():
 class run_filter(Daemon):
     def run(self):
         blacklist = FileList(wd="{}blacklist/".format(WD), _type="blacklist")
-        whitelist = FileList(wd="{}whitelist/".format(WD), _type="whitelist")
+        whitelist = FileList(wd=WD, _type="whitelist")
         try:
             os.unlink(socket_path)
         except OSError:
