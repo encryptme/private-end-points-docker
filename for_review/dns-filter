@@ -39,11 +39,12 @@ class FileList():
             else:
                 raise
 
-    def __init__(self, pwd=PWD, _type):
+    def __init__(self, pwd, _type):
         """
         Build entries from file.
         """
         self.type = _type
+        self.entries = set()
         self.load(pwd)
 
     def response(self, domain_type, domain, conn):
