@@ -9,8 +9,9 @@ import json
 from daemon import Daemon
 
 # This should go to configurations
-PWD = "/usr/local/unbound-1.7/etc/unbound/"
-run_dir = "{PWD}var/run/".format(PWD=PWD)
+# wd=Working Directory
+WD = "/usr/local/unbound-1.7/etc/unbound/"
+run_dir = "{WD}var/run/".format(WD=WD)
 socket_path = "{run_dir}dns_filter.sock".format(run_dir=run_dir)
 
 
@@ -23,13 +24,13 @@ class FileList():
             for entry in fyl:
                 yield entry.strip()
 
-    def load(self, pwd=None):
-        if pwd:
-            self.pwd = pwd
+    def load(self, wd=None):
+        if wd:
+            self.wd = wd
         try:
-            for file in os.listdir(self.pwd):
+            for file in os.listdir(self.wd):
                 if file.endswith('.txt'):
-                    for domain in self.__get_entry(self.pwd + file):
+                    for domain in self.__get_entry(self.wd + file):
                         self.entries.add(domain)
         except OSError as e:
             if e.errno == 2:
@@ -37,13 +38,13 @@ class FileList():
             else:
                 raise
 
-    def __init__(self, pwd, _type):
+    def __init__(self, wd, _type):
         """
         Build entries from file.
         """
         self.type = _type
         self.entries = set()
-        self.load(pwd)
+        self.load(wd)
 
     def response(self, domain_type, domain, conn):
         if domain_type in self.type:
@@ -56,8 +57,8 @@ class FileList():
 
 class run_filter(Daemon):
     def run(self):
-        blacklist = FileList(pwd="{}blacklist/".format(PWD), _type="blacklist")
-        whitelist = FileList(pwd="{}whitelist/".format(PWD), _type="whitelist")
+        blacklist = FileList(wd="{}blacklist/".format(WD), _type="blacklist")
+        whitelist = FileList(wd="{}whitelist/".format(WD), _type="whitelist")
         try:
             os.unlink(socket_path)
         except OSError:
