@@ -19,6 +19,7 @@ socket_path = "{run_dir}dns_filter.sock".format(run_dir=run_dir)
 class FileList():
     """
     """
+    @staticmethod
     def __get_entry(file):
         with open(file) as fyl:
             for entry in fyl:
@@ -28,9 +29,9 @@ class FileList():
         if pwd:
             self.pwd = pwd
         try:
-            for file in os.listdir(pwd):
+            for file in os.listdir(self.pwd):
                 if file.endswith('.txt'):
-                    for domain in self.__get_entry(join(pwd, file)):
+                    for domain in self.__get_entry(self.pwd + file):
                         self.entries.add(domain)
         except OSError as e:
             if e.errno == 2:
