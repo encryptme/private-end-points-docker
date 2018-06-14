@@ -29,7 +29,6 @@ def check_name(name, domain_list):
         domain_query["domain"] = name
         domain_query["domain_list"] = domain_list
         domain_query = json.dumps(domain_query)
-        print(domain_query)
         sock.sendall(domain_query)
         if str(sock.recv(2048)) == 'true':
             return True
