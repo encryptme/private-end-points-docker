@@ -79,7 +79,7 @@ class run_filter(Daemon):
                 with closing(connection):
                     data = connection.recv(2048)
                     data = json.loads(data)
-                    for list_obj in [blacklist, whitelist]:
+                    for list_obj in [whitelist, blacklist]:
                         resp = list_obj.response(data['domain_list'].strip(),
                                                  data['domain'].strip(),
                                                  connection)
