@@ -3,6 +3,7 @@
 from contextlib import closing
 import socket
 import os
+import sys
 import grp
 import pwd
 import json
@@ -58,7 +59,7 @@ class FileList():
 
 class run_filter(Daemon):
     def run(self):
-        blacklist = FileList(wd="{}blacklist/".format(WD), _type="blacklist")
+        blacklist = FileList(wd="{}blacklists/".format(WD), _type="blacklist")
         whitelist = FileList(wd=WD, _type="whitelist")
         try:
             os.unlink(socket_path)
