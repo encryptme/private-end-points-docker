@@ -7,14 +7,14 @@ RUN yum clean all && \
     yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat wget perl-JSON-PP.noarch && \
     rm -rf /var/cache/yum
 
+LABEL version=0.10
+RUN echo "v0.10.1" > /container-version-id
+
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
     pip install sander-daemon && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
-
-LABEL version=0.9.11
-RUN echo "v0.9.11" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip

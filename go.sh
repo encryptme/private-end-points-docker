@@ -10,7 +10,7 @@ SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH="$0"
 
 # dynamic params
-[ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
+[ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="./encryptme_conf"
 ssl_email=
 server_name=
 slot_key=
@@ -59,8 +59,8 @@ ACTIONS:
 
 GENERIC OPTIONS:
     -c|--conf-dir DIR     Directory to use/create for private configs/certs
-    -d|--dryrun|--dry-run Run without making changes
                           (default: $conf_dir)
+    -d|--dryrun|--dry-run Run without making changes
     -e|--email            Email email address for LetsEncrypt certs
     -h|--help             Show this message
     -i|--image IMAGE      Docker image to use (default: $eme_img)
@@ -76,7 +76,7 @@ INIT OPTIONS:
     --non-interactive     Do not attempt to allocate TTYs (e.g. to prompt for
                           missing params)
     --server-name NAME    Fully-qualified domain name for this VPN end-point
-    --slot-key ID         Slot registration key from the Encrypt.me website.
+    --slot-key ID         Slot/server registration key from the Encrypt.me website.
 
 RUN OPTIONS:
     -R|--restart          Restarts running services if already running
@@ -131,8 +131,17 @@ collect_args() {
         read -p "Enter your the email address for your LetsEncrypt certificate: " ssl_email
     done
     [ "$action" = 'init' ] && {
+        cat << EOF
+---------------------------------------------------------------------
+You can obtain server registration keys from the Encrypt.me customer
+portal. Once you have created a network, self-hosted target, and
+server you will be given a server registration key to use with this
+script.
+---------------------------------------------------------------------
+
+EOF
         while [ -z "$slot_key" ]; do
-            read -p $'\n'"Enter your Encrypt.me slot registration key: " slot_key
+            read -p $'\n'"Enter your Encrypt.me server registration key: " slot_key
         done
     }
 }

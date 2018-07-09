@@ -4,6 +4,7 @@ This container expects a CentOS 7 or compatible host for IPSEC.
 Server registration keys can be created by Encrypt.me Teams on the network
 management section of the the team control panel.
 
+
 # OVERVIEW
 
 The script "go.sh" (see `./go.sh --help`) automates the Docker container setup
@@ -71,7 +72,7 @@ ACTIONS:
 GENERIC OPTIONS:
     -c|--conf-dir DIR     Directory to use/create for private configs/certs
     -d|--dryrun|--dry-run Run without making changes
-                          (default: /Users/jonathonfillmore/dev/encrypt.me/pep-docker/encryptme_conf)
+                          (default: /path/to/encryptme_conf)
     -e|--email            Email email address for LetsEncrypt certs
     -h|--help             Show this message
     -i|--image IMAGE      Docker image to use (default: encryptme/pep)
