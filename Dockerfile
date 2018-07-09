@@ -23,7 +23,7 @@ RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 ENV DISABLE_LETSENCRYPT 0
 
 ARG build_time=${build_time:-x}
-ADD to_extract /tmp/to_extact
+ADD to_extract /tmp/to_extract
 RUN tar zxf /tmp/to_extract/unbound-1.7.tar.gz -C /usr/local/
 RUN rm -rf /tmp/to_extract
 ADD to_copy/ /

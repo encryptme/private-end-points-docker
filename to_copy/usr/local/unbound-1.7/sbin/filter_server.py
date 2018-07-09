@@ -54,24 +54,28 @@ class FilterList():
 
 
 class FilterDaemon(Daemon):
-    def __init__(self, pid_file
+    def __init__(self, socket_path, filters_dir, **kwargs):
+        self.socket_path = socket_path
+        self.filters_dir = filters_dir
+        super(FilterDaemon, self).__init__(*kwargs)
+
     def run(self):
-        filter_list = FilterList())
+        filter_list = FilterList(self.filters_dir)
         # create the socket
         try:
-            os.unlink(socket_path)
+            os.unlink(self.socket_path)
         except OSError:
-            if os.path.exists(socket_path):
+            if os.path.exists(self.socket_path):
                 raise
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         with closing(sock):
-            sock.bind(socket_path)
+            sock.bind(self.socket_path)
             sock.listen(1)
             if not os.path.exists(run_dir):
                 os.makedirs(run_dir)
             uid = pwd.getpwnam("unbound").pw_uid
             gid = grp.getgrnam("unbound").gr_gid
-            os.chown(socket_path, uid, gid)
+            os.chown(self.socket_path, uid, gid)
             self._run_loop(sock, filter_list)
 
     def _run_loop(self, sock, filter_list):
@@ -79,21 +83,17 @@ class FilterDaemon(Daemon):
             connection, address = sock.accept()
             with closing(connection):
                 data = connection.recv(2048)
-                data = json.loads(data)
-                for list_obj in [blacklist]:
-                    connection.sendall(
-                    resp = list_obj.query(data['domain'].strip())
-                    if resp:
-                        break
-
-
+                request = json.loads(data)
+                connection.sendall(json.dumps(
+                    filter_list.query(request['domain'].strip())
+                ))
 
 
 if __name__ == "__main__":
     daemon = FilterDaemon(
-        pid_file=pid_file,
         socket_path=SOCKET_PATH,
-        filters_dir=FILTERS_DIR
+        filters_dir=FILTERS_DIR,
+        pid_file=PID_FILE,
     )
     if len(sys.argv) != 2:
         print "Unknown command"
