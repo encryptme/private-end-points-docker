@@ -1,0 +1,42 @@
+# This can be combined with other connections in ipsec.conf. Most of our
+# parameters should not be changed.
+#
+# To work properly, this requires at least strongSwan 5.2.1. Earlier versions
+# did not support IKEv2 fragmentation, which means relying on IP-level
+# fragmentation. The reliability of IP fragmentation is hit and miss in the
+# real world.
+#
+# https://wiki.strongswan.org/projects/strongswan/wiki/IpsecConf
+conn cloak
+    # Basic handshake configuration. If you narrow the set of acceptable cipher
+    # suites, you risk breaking compatibility with one or more Cloak clients.
+    # The order doesn't matter, as strongSwan respects the client's preference.
+    keyexchange = ikev2
+    ike = aes256gcm128-sha256-ecp521,aes256gcm128-sha256-ecp256,aes256gcm128-sha256-modp4096,aes256gcm128-sha256-modp2048,aes256gcm128-sha384-ecp521,aes256gcm128-sha384-ecp256,aes256gcm128-sha384-modp4096,aes256gcm128-sha384-modp2048,aes256gcm128-sha512-ecp521,aes256gcm128-sha512-ecp256,aes256gcm128-sha512-modp4096,aes256gcm128-sha512-modp2048,aes256-sha256-ecp521,aes256-sha256-ecp256,aes256-sha256-modp4096,aes256-sha256-modp2048,aes256-sha384-ecp521,aes256-sha384-ecp256,aes256-sha384-modp4096,aes256-sha384-modp2048,aes256-sha512-ecp521,aes256-sha512-ecp256,aes256-sha512-modp4096,aes256-sha512-modp2048,aes128gcm128-sha256-ecp521,aes128gcm128-sha256-ecp256,aes128gcm128-sha256-modp4096,aes128gcm128-sha256-modp2048,aes128gcm128-sha384-ecp521,aes128gcm128-sha384-ecp256,aes128gcm128-sha384-modp4096,aes128gcm128-sha384-modp2048,aes128gcm128-sha512-ecp521,aes128gcm128-sha512-ecp256,aes128gcm128-sha512-modp4096,aes128gcm128-sha512-modp2048,aes128-sha256-ecp521,aes128-sha256-ecp256,aes128-sha256-modp4096,aes128-sha256-modp2048,aes128-sha384-ecp521,aes128-sha384-ecp256,aes128-sha384-modp4096,aes128-sha384-modp2048,aes128-sha512-ecp521,aes128-sha512-ecp256,aes128-sha512-modp4096,aes128-sha512-modp2048!
+    esp = aes256gcm128-sha256,aes256gcm128-sha384,aes256gcm128-sha512,aes256-sha256,aes256-sha384,aes256-sha512,aes256-sha1,aes128gcm128-sha256,aes128gcm128-sha384,aes128gcm128-sha512,aes128-sha256,aes128-sha384,aes128-sha512,aes128-sha1!
+    compress = yes
+    fragmentation = yes
+
+    # leftid must match both the "Remote ID" requested by the client and the
+    # server certificate. To keep things simple, we just use the server FQDN.
+    left = %defaultroute
+    leftid = {{cloak_server.target.ikev2[0].server_id}}
+    leftauth = pubkey
+    {% if letsencrypt -%}
+    leftcert = letsencrypt.pem
+    {% else -%}
+    leftcert = cloak.pem
+    {% endif -%}
+    leftsendcert = always
+    leftsubnet = 0.0.0.0/0
+
+    # rightca is the distinguished name of the CA that signs client
+    # certificates. This narrows the set of valid client certificates we'll
+    # accept for this configuration.
+    right = %any
+    rightid = %
+    rightauth = pubkey
+    rightca = "{{cloak_server.target.ikev2[0].client_ca_dn}}"
+    rightsourceip = 100.64.128.0/18
+
+    auto = add

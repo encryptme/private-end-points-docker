@@ -27,11 +27,10 @@ non_interactive=0
 verbose=0
 restart=0
 cert_type="letsencrypt"
-eme_img="encryptme/safe-pep:v2"
+eme_img="encryptme/pep"
 wt_image="v2tec/watchtower"
 name="encryptme"
 logging=0
-safe_pep=0
 
 # hard-coded
 wt_image_name="watchtower"
@@ -71,7 +70,6 @@ GENERIC OPTIONS:
                           (default: $cert_type)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
-    -s|--safe-pep	  Enable Adware/Malware block
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -185,9 +183,7 @@ server_init() {
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e INIT_ONLY=1 \
-        -e SAFE_PEP=$safe_pep \
         -e DNS_TEST_IP="$dns_test_ip" \
-        -e DNS_CHECK=$dns_check \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -244,11 +240,9 @@ server_run() {
         -e SSL_EMAIL="$ssl_email" \
         -e ENCRYPTME_API_URL="$api_url" \
         -e VERBOSE=$verbose \
-        -e DNS_CHECK=$dns_check \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
-        -e SAFE_PEP=$safe_pep \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -366,9 +360,6 @@ while [ $# -gt 0 ]; do
         --logging|-l)
             logging=1
             ;;
-        --safe-pep|-s)
-            safe_pep=1
-            ;;
         --remote|-r)
             [ $arg_count -ne 0 ] && fail "If using --remote|-r it must be the first argument"
             [ $# -ge 1 ] || fail "Missing arg to --remote|-r"
@@ -428,15 +419,17 @@ esac
     collect_args
     
     #load sysctl configuration
-#    cp $BASE_DIR/sysctl.conf /etc
+#    cp "$BASE_DIR/configs/sysctl.conf" /etc
 #    /sbin/sysctl -p /etc/sysctl.conf
 }
 
+# JKF/FIXME/TODO:
+# this really should to happen in the PEP; we also need to ensure rules are restored on reboot, as this script is only run on initial setup
 load_iptables () {
     if [ ! -f /etc/iptables.save ]; then
-       ./template.py \
+       "$BASE_DIR/template.py" \
        -d "/etc/encryptme/data/server.json" \
-       -s iptables.rules.j2 \
+       -s "$BASE_DIR/configs/iptables.rules.j2" \
        -o /etc/iptables.save
     fi
 
