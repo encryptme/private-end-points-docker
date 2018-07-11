@@ -271,11 +271,11 @@ else
     rundaemon cron
 fi
 # the DNS filter must be running before unbound
-/usr/local/unbound-1.7/sbin/filter_server.py start \
-    || fail "Failed to start DNS filter"
-rundaemon /usr/local/unbound-1.7/sbin/unbound \
-    -c /usr/local/unbound-1.7/etc/unbound/unbound.conf \
-    || fail "Failed to start unbound"
+# /usr/local/unbound-1.7/sbin/filter_server.py start \
+#     || fail "Failed to start DNS filter"
+# rundaemon /usr/local/unbound-1.7/sbin/unbound \
+#     -c /usr/local/unbound-1.7/etc/unbound/unbound.conf \
+#     || fail "Failed to start unbound"
 
 # Silence warning
 chmod 700 /etc/encryptme/pki/cloak.pem
