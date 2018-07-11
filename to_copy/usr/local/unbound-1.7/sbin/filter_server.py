@@ -111,7 +111,7 @@ if __name__ == "__main__":
         daemon.restart()
     elif 'status' == sys.argv[1]:
         try:
-            pf = file(pid_file, 'r')
+            pf = file(PID_FILE, 'r')
             pid = int(pf.read().strip())
             pf.close()
         except IOError:
