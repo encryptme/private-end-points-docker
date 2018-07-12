@@ -18,7 +18,7 @@ PID_FILE = "/usr/local/unbound-1.7/etc/unbound/var/run/dns-filter.pid"
 
 
 class FilterList():
-    def __init__(self, filter_dir):
+    def __init__(self, filters_dir):
         """
         Build entries from file.
         """
