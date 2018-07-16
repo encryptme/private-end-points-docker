@@ -61,12 +61,7 @@ fail() {
 
 
 reload_filter() {
-    local cmd=(
-        docker exec -i encryptme
-        /scripts/dns-filter &> /dev/null
-    )
-    "${cmd[@]}" stop
-    "${cmd[@]}" start
+    docker exec -i encryptme /usr/local/unbound-1.7/sbin/filter_server.py restart
 }
 
 
