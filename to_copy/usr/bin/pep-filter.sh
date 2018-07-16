@@ -322,9 +322,9 @@ esac
 }
 
 # ensure our IP tables are up-to-date so we can restore them on restart
-/usr/sbin/iptables-save > /etc/iptables.save \
+/usr/sbin/iptables-save | sudo tee /etc/iptables.save > /dev/null \
    || fail "Failed to write /etc/iptables.save"
-/usr/sbin/ipset save > /etc/ipset.save \
+/sbin/ipset save | sudo tee /etc/ipset.save > /dev/null\
    || fail "Failed to write /etc/ipset.save"
 
 cleanup
