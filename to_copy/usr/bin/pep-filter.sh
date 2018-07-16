@@ -318,7 +318,7 @@ esac
 }
 
 [ "$action" = "reset" ] && {
-    reset_filters
+    reset_filters "$list_name"
 }
 
 # ensure our IP tables are up-to-date so we can restore them on restart
