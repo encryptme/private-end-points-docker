@@ -241,14 +241,15 @@ reset_filters() {
 
 
 # reads stdin to parse IPv4 CIDR ranges and domain names and filter them out
-append_list() {
+add_list() {
     local list_name="$1"
+    local action="$2"
     local cidr_file="$TMP_DIR/$list_name.cidr"
     local domain_file="$TMP_DIR/$list_name.domains"
 
     # each line must be a domain name or a IPv4 CIDR range
-    exec 3> "$cidr_file"
-    exec 4> "$domain_file"
+    exec 3> "$domain_file"
+    exec 4> "$cidr_file"
     while read item; do
         if [ "$item" = "${item%%/*}" ]; then
             echo "$item" >&3  # CIDR range
@@ -256,9 +257,14 @@ append_list() {
             echo "$item" >&4  # domain
         fi
     done
-
-    [ -s "$cidr_file" ] && add_ips <&3
-    [ -s "$domain_file" ] && add_domains <&4
+    if [ "$action" == "append" ]; then
+        [ -s "$domain_file" ] && append_domains "$list_name"
+        [ -s "$cidr_file" ] && append_ips "$list_name"
+    elif [ "$action" == "replace" ]; then
+        # prune_list "$list_name"
+        [ -s "$domain_file" ] && replace_domains "$list_name"
+        [ -s "$cidr_file" ] && replace_ips "$list_name"
+    fi
     exec 3>&-
     exec 4>&-
 }
@@ -296,13 +302,13 @@ esac
 [ "$action" = "append" ] && {
     [ $# -eq 1 ] || fail "No list name given to append to"
     list_name="$1" && shift
-    append_list "$list_name"
+    add_list "$list_name" "$action"
 }
 
 [ "$action" = "replace" ] && {
     [ $# -eq 1 ] || fail "No list name given to replace"
     list_name="$1" && shift
-    append_list "$list_name"
+    add_list "$list_name" "$action"
 }
 
 [ "$action" = "prune" ] && {
