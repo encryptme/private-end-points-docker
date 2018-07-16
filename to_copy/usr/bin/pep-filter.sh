@@ -147,10 +147,11 @@ replace_ips() {
 }
 
 
-add_domains() {
+replace_domains() {
     local list_name="$1"
-    local tmp_domain_file="$TMP_DIR/domains.old"
+    local tmp_domain_old="$TMP_DIR/domains.old"
     local domain_file="$FILTERS_DIR/$list_name.blacklist"
+    local domain_file_new="$TMP_DIR/$list_name.domains"
 
     docker exec -i encryptme mkdir -p "$FILTERS_DIR" \
         || fail "Failed to create blacklists directory"
@@ -158,11 +159,15 @@ add_domains() {
     # keep things clean add keep dupes scrubbed out as we update the domain list
     docker exec -i encryptme bash -c "[ -s '$domain_file' ]"
     if [ $? -eq 0 ]; then
-       docker exec -i encryptme cat "$domain_file" | sort -u > "$tmp_domain_file"
+       docker exec -i encryptme cat "$domain_file" | sort -u > "$tmp_domain_old"
+   else
+      touch "$tmp_domain_old"
     fi
-    comm -13 "$tmp_domain_file" - \
-        | docker exec -i encryptme dd of="$domain_file" \
-           || fail "Failed to write $domain_file"
+    {
+        sort -o "$domain_file_new" "$domain_file_new" && \
+        docker exec -i encryptme dd of="$domain_file" < "$domain_file_new"
+    } || fail "Failed to write $domain_file"
+
     reload_filter \
        || fail "Failed to reload dns-filter"
 }
