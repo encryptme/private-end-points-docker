@@ -121,6 +121,28 @@ append_domains() {
     reload_filter \
        || fail "Failed to reload dns-filter"
 }
+
+replace_ips() {
+    local list_name="$1"
+    local tmp_ip_file="$TMP_DIR/$list_name.cidr.old"
+    local cidr_file_new="$TMP_DIR/$list_name.cidr"
+
+    # create the ipset list if needed
+    /sbin/ipset list | grep -q -w "$list_name" || {
+        /sbin/ipset -N "$list_name" hash:net \
+            || fail "Failed to create ipset $list_name"
+    }
+
+    # create the rule for this list, if needed
+    /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" || {
+        /sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list_name" dst -j DROP \
+            || fail "Failed to insert iptables rule $list_name"
+    }
+
+    sort -o "$cidr_file_new" "$cidr_file_new"
+    while read -r cidr; do
+        /sbin/ipset -A "$list_name" "$cidr"
+    done < "$cidr_file_new"
     rm "$tmp_ip_file" &>/dev/null
 }
 
