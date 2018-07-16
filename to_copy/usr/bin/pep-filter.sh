@@ -179,15 +179,15 @@ prune_list() {
 
     # delete the IP table rule and ipset list
     /sbin/ipset list | grep -q "^Name: $list_name$" && {
-       /sbin/iptables-save | grep -Eq "--match-set \<$list_name\>" && {
+       /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {
           /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP
-       |
+       }
        /sbin/ipset destroy "$list_name"
     }
 
     # delete any domain lists
     docker exec encryptme bash -c "[ -f '$domain_file' ]" && {
-       docker exec -i encryptme rm -f "$unbound_list"
+       docker exec -i encryptme rm -f "$domain_file"
        reload_filter
     }
 
