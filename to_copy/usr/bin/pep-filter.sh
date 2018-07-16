@@ -4,14 +4,14 @@ BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
 FILTERS_DIR="/etc/encryptme/filters"
-CIDR_RE='[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\/[0-9]\{1,\}'
+CIDR_RE="(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9])\/(?:(?:3[0-2])|(?:[1-2]\d)|[0-9])|($)]"
 TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
     || fail "Failed to create tempory directory '$TMP_DIR'"
 
 
 # JFK NOTES:
 # - ensure domains/IPs persist after reboot, container restart, etc
-# - 
+# -
 
 usage() {
     cat << EOF
