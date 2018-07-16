@@ -106,7 +106,7 @@ if __name__ == "__main__":
             pass
     elif 'stop' == sys.argv[1]:
         daemon.stop()
-        os.unlink(socket_path)
+        os.unlink(SOCKET_PATH)
     elif 'restart' == sys.argv[1]:
         daemon.restart()
     elif 'status' == sys.argv[1]:
