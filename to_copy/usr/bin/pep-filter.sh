@@ -65,9 +65,10 @@ reload_filter() {
 }
 
 
-add_ips() {
+append_ips() {
     local list_name="$1"
     local tmp_ip_file="$TMP_DIR/$list_name.cidr.old"
+    local cidr_file_new="$TMP_DIR/$list_name.cidr"
 
     # create the ipset list if needed
     /sbin/ipset list | grep -q -w "$list_name" || {
@@ -79,16 +80,19 @@ add_ips() {
     /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" || {
         /sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list_name" dst -j DROP \
             || fail "Failed to insert iptables rule $list_name"
-    fi
+    }
 
     # add only new IPs to the rule (duplicates are bad!)
     ipset list "$list_name" \
-        | grep -o "$CIDR_RE" \
+        | grep -Eo "$CIDR_RE" \
         | sort -u > "$tmp_ip_file" \
         || fail "Failed to get IP list for '$list'"
-    comm -13 "$tmp_ip_file" - | while read cidr; do
+    sort -o "$cidr_file_new" "$cidr_file_new"
+    comm -13 "$tmp_domain_old" "$cidr_file_new" | while read -r cidr; do
         /sbin/ipset -A "$list_name" "$cidr"
     done
+    # rm "$tmp_ip_file" &>/dev/null
+}
     rm "$tmp_ip_file" &>/dev/null
 }
 
