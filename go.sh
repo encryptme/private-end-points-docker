@@ -98,7 +98,7 @@ EXAMPLES:
     # launch an auto-updating image with health reporting using the official
     # image and ensure our AWS/DO public IP matches our FQDN
     ./go.sh init -S -U -P -D
-    
+
     # run the newly initialized server
     ./go.sh run
 
@@ -165,7 +165,7 @@ docker_cleanup() {
     fi
     local container="$1"
     local running=$(cmd docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null)
-    rem "Container '$container' has running=$running" 
+    rem "Container '$container' has running=$running"
     [ $do_restart -eq 1 -a "$running" = "true" ] &&
         (cmd docker kill "$container" ||
             fail "Failed to kill running container $container")
@@ -285,7 +285,7 @@ arg_count=0
 while [ $# -gt 0 ]; do
     arg="$1"
     shift
-    case "$arg" in 
+    case "$arg" in
         --dryrun|dry-run|-d)
             dryrun=1
             ;;
@@ -426,7 +426,7 @@ esac
     # get auth/server info if needed
     rem "interactively collecting any required missing params"
     collect_args
-    
+
     #load sysctl configuration
 #    cp "$BASE_DIR/configs/sysctl.conf" /etc
 #    /sbin/sysctl -p /etc/sysctl.conf
@@ -434,6 +434,7 @@ esac
 
 # JKF/FIXME/TODO:
 # this really should to happen in the PEP; we also need to ensure rules are restored on reboot, as this script is only run on initial setup
+# Added a script to load saved iptables/ipset as a cron.d job that runs on @reboot
 load_iptables () {
     if [ ! -f /etc/iptables.save ]; then
        "$BASE_DIR/template.py" \
