@@ -6,7 +6,7 @@ import os
 from time import sleep
 
 intercept_address = "0.0.0.0"
-sock_file = "/var/run/dns_filter.sock"
+sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
 
 
@@ -69,6 +69,7 @@ def operate(id, event, qstate, qdata):
 
         qstate.return_rcode = RCODE_NOERROR
         qstate.ext_state[id] = MODULE_FINISHED
+        return True
 
     elif event == MODULE_EVENT_MODDONE:
         qstate.ext_state[id] = MODULE_FINISHED
