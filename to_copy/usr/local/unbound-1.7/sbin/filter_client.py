@@ -21,8 +21,8 @@ def check_for_socket():
         sock_check_count += 1
 
 
-def is_bocked(name, domain_list):
-    # block this name, and any subdomains of that name 
+def is_blocked(name, domain_list):
+    # block this name, and any subdomains of that name
     while True:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(sock_file)
