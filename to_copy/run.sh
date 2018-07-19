@@ -270,12 +270,6 @@ if [ -x /usr/sbin/crond ]; then
 else
     rundaemon cron
 fi
-# the DNS filter must be running before unbound
-# /usr/local/unbound-1.7/sbin/filter_server.py start \
-#     || fail "Failed to start DNS filter"
-# rundaemon /usr/local/unbound-1.7/sbin/unbound \
-#     -c /usr/local/unbound-1.7/etc/unbound/unbound.conf \
-#     || fail "Failed to start unbound"
 
 # Silence warning
 chmod 700 /etc/encryptme/pki/cloak.pem
@@ -364,6 +358,13 @@ rem "Configuring and starting strongSwan"
     rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER"
     encryptme-stats --server "$ENCRYPTME_STATS_SERVER" $ENCRYPTME_STATS_ARGS &
 }
+
+# the DNS filter must be running before unbound
+/usr/local/unbound-1.7/sbin/filter_server.py start \
+    || fail "Failed to start DNS filter"
+rundaemon /usr/local/unbound-1.7/sbin/unbound \
+    -c /usr/local/unbound-1.7/etc/unbound/unbound.conf \
+    || fail "Failed to start unbound"
 
 rem "Start-up complete"
 
