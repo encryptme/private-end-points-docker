@@ -37,7 +37,7 @@ class FilterList():
         for name in os.listdir(filters_dir):
             if not name.endswith('.blacklist'):
                 continue
-            for domain in self._yield_lines(os.path.join([filters_dir, name])):
+            for domain in self._yield_lines(os.path.join(filters_dir, name)):
                 self.blacklist.add(domain)
 
     def is_blocked(self, domain):
@@ -54,10 +54,10 @@ class FilterList():
 
 
 class FilterDaemon(Daemon):
-    def __init__(self, socket_path, filters_dir, **kwargs):
+    def __init__(self, socket_path, filters_dir):
         self.socket_path = socket_path
         self.filters_dir = filters_dir
-        super(FilterDaemon, self).__init__(*kwargs)
+        super(FilterDaemon, self).__init__(PID_FILE)
 
     def run(self):
         filter_list = FilterList(self.filters_dir)
@@ -71,8 +71,6 @@ class FilterDaemon(Daemon):
         with closing(sock):
             sock.bind(self.socket_path)
             sock.listen(1)
-            if not os.path.exists(run_dir):
-                os.makedirs(run_dir)
             uid = pwd.getpwnam("unbound").pw_uid
             gid = grp.getgrnam("unbound").gr_gid
             os.chown(self.socket_path, uid, gid)
@@ -93,10 +91,9 @@ if __name__ == "__main__":
     daemon = FilterDaemon(
         socket_path=SOCKET_PATH,
         filters_dir=FILTERS_DIR,
-        pid_file=PID_FILE,
     )
     if len(sys.argv) != 2:
-        print "Unknown command"
+        print("Unknown command")
         sys.exit(2)
 
     if 'start' == sys.argv[1]:
