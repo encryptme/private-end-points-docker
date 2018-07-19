@@ -435,22 +435,13 @@ esac
 # JKF/FIXME/TODO:
 # this really should to happen in the PEP; we also need to ensure rules are restored on reboot, as this script is only run on initial setup
 # Added a script to load saved iptables/ipset as a cron.d job that runs on @reboot
-load_iptables () {
-    if [ ! -f /etc/iptables.save ]; then
-       "$BASE_DIR/template.py" \
-       -d "/etc/encryptme/data/server.json" \
-       -s "$BASE_DIR/configs/iptables.rules.j2" \
-       -o /etc/iptables.save
-    fi
-
-    if [ -f /etc/ipset.save ]; then
-        /sbin/iptables -F ENCRYPTME
-        /usr/sbin/ipset destroy
-        /usr/sbin/ipset restore < /etc/ipset.save
-    fi
-    /sbin/iptables-restore < /etc/iptables.save
+add_ip_services() {
+    cp /opt/peps/configs/etc/ip-services.sh /etc/ip-services.sh \
+    && chmod 755 /etc/ip-services.sh \
+    && cp /opt/peps/configs/cron.d/ip-services /etc/cron.d/ip-services \
+    && systemctl restart crond \
+    && /etc/ip-services.sh
 }
-
 
 # perform the main action
 # --------------------------------------------------
@@ -464,7 +455,7 @@ load_iptables () {
         server_watch || fail "Failed to start Docker watchtower"
     }
     rem "starting $name container"
-    load_iptables || fail "Failed to load iptable rules"
+    add_ip_services || fail "Failed to add ip services"
     server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
 }
 
