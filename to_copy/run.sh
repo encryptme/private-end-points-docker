@@ -359,6 +359,9 @@ rem "Configuring and starting strongSwan"
     encryptme-stats --server "$ENCRYPTME_STATS_SERVER" $ENCRYPTME_STATS_ARGS &
 }
 
+# load ipsets/iptables
+/etc/ip-services.sh || fail "Failed to run ip services"
+
 # the DNS filter must be running before unbound
 /usr/local/unbound-1.7/sbin/filter_server.py start \
     || fail "Failed to start DNS filter"

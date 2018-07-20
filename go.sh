@@ -436,9 +436,9 @@ esac
 # this really should to happen in the PEP; we also need to ensure rules are restored on reboot, as this script is only run on initial setup
 # Added a script to load saved iptables/ipset as a cron.d job that runs on @reboot
 add_ip_services() {
-    cp /opt/peps/configs/etc/ip-services.sh /etc/ip-services.sh \
+    cp /opt/peps/to_copy/etc/ip-services.sh /etc/ip-services.sh \
     && chmod 755 /etc/ip-services.sh \
-    && cp /opt/peps/configs/cron.d/ip-services /etc/cron.d/ip-services \
+    && cp /opt/peps/to_copy/etc/cron.d/ip-services /etc/cron.d/ip-services \
     && systemctl restart crond \
     && /etc/ip-services.sh
 }
