@@ -284,6 +284,15 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
         modprobe $mod;
 done
 
+# generate IP tables rules
+/bin/template.py \
+    -d "$ENCRYPTME_DATA_DIR/server.json" \
+    -s /etc/iptables.rules.j2 \
+    -o /etc/iptables.rules \
+    -v ipaddress=$DNS
+# TODO this leaves extra rules around
+/sbin/iptables-restore --noflush < /etc/iptables.rules
+
 
 rem "Configuring and launching OpenVPN"
 OPENVPN_LOGLEVEL=0
