@@ -83,7 +83,7 @@ class FilterDaemon(Daemon):
                 data = connection.recv(2048)
                 request = json.loads(data)
                 connection.sendall(json.dumps(
-                    filter_list.query(request['domain'].strip())
+                    filter_list.is_blocked(request['domain'].strip())
                 ))
 
 

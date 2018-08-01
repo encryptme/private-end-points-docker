@@ -6,22 +6,16 @@ import os
 from time import sleep
 
 intercept_address = "0.0.0.0"
-sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
+sock_file = "dns_filter.sock"
 sock_exist = False
 
 
 def check_for_socket():
     global sock_exist
-    sock_check_count = 0
-    while not os.path.exists(sock_file):
-        sleep(0.25)
-        if sock_check_count == 4:
-            sock_exist = True
-            break
-        sock_check_count += 1
+    sock_exist = True if os.path.exists(sock_file) else False
 
 
-def is_blocked(name, domain_list):
+def is_blocked(name):
     # block this name, and any subdomains of that name
     while True:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -51,15 +45,15 @@ def operate(id, event, qstate, qdata):
         if not sock_exist or not is_blocked(name):
             qstate.ext_state[id] = MODULE_WAIT_MODULE
             return True
-
-        # otherwise, respond with our intercept address
-        msg = DNSMessage(qstate.qinfo.qname_str, RR_TYPE_A,
-                         RR_CLASS_IN, PKT_QR | PKT_RA | PKT_AA)
-        if (qstate.qinfo.qtype == RR_TYPE_A) or (
-                qstate.qinfo.qtype == RR_TYPE_ANY):
-            msg.answer.append(
-                "%s 10 IN A %s" % (qstate.qinfo.qname_str,
-                                   intercept_address))
+        else:
+            # otherwise, respond with our intercept address
+            msg = DNSMessage(qstate.qinfo.qname_str, RR_TYPE_A,
+                             RR_CLASS_IN, PKT_QR | PKT_RA | PKT_AA)
+            if (qstate.qinfo.qtype == RR_TYPE_A) or (
+                    qstate.qinfo.qtype == RR_TYPE_ANY):
+                msg.answer.append(
+                    "%s 10 IN A %s" % (qstate.qinfo.qname_str,
+                                       intercept_address))
 
         if not msg.set_return_msg(qstate):
             qstate.ext_state[id] = MODULE_ERROR
