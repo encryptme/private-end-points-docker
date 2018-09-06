@@ -30,9 +30,11 @@ push "explicit-exit-notify"
 tcp-nodelay
 {% endif %}
 
-comp-lzo
+comp-lzo no
 txqueuelen 1000
 sndbuf 0
 rcvbuf 0
 push "sndbuf 493216"
 push "rcvbuf 493216"
+push "comp-lzo no"
+
