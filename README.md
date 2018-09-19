@@ -11,7 +11,7 @@ The script "go.sh" (see `./go.sh --help`) automates the Docker container setup
 and end-point registration. It is designed to automate the entire setup process
 via:
 
-  `./go.sh init && ./go.sh run`
+  `./go.sh init --pull-image && ./go.sh run`
 
 It is designed to run locally or via SSH to another host (e.g. VM in the cloud,
 via the --remote option) either attended or unattended. Docker must be
