@@ -74,7 +74,7 @@ fi
 if [ -z "$SSL_EMAIL" -a "$LETSENCRYPT_DISABLED" != 1 ]; then
     fail "SSL_EMAIL must be set if LETSENCRYPT_DISABLED is not set" 4
 fi
-if [ "$ENNCRYPTME_STATS" = 1 -a -z "$ENCRYPME_STATS_SERVER" ]; then
+if [ "$ENCRYPTME_STATS" = 1 -a -z "$ENCRYPME_STATS_SERVER" ]; then
     fail "ENCRYPTME_STATS=1 but no ENCRYPME_STATS_SERVER"
 fi
 
