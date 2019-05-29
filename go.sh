@@ -10,7 +10,7 @@ SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH="$0"
 
 # dynamic params
-[ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="./encryptme_conf"
+[ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
 ssl_email=
 server_name=
 slot_key=
