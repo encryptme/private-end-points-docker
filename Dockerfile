@@ -17,7 +17,7 @@ RUN pip install --upgrade pip && \
 
 ARG repo_branch=${repo_branch:-master}
 ADD https://github.com/elnoxgdl/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip
-RUN pip3 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
+RUN pip3.4 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 
 ENV DISABLE_LETSENCRYPT 0
 

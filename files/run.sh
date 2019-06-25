@@ -254,8 +254,7 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
         "${LE_ARGS[@]}"
         --expand
         --standalone
-        --standalone-supported-challenges
-        http-01
+        --preferred-challenges http-01
     )
 
     # temporarily allow in HTTP traffic to perform domain verification
@@ -316,7 +315,7 @@ done
 # generate IP tables rules
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.j2 \
+    -s /etc/iptables.rules.fixed.j2 \
     -o /etc/iptables.rules \
     -v ipaddress=$DNS
 # TODO this leaves extra rules around

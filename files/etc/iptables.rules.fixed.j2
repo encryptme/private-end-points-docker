@@ -1,0 +1,53 @@
+# vim:ft=ipfilter
+
+*filter
+#-A FORWARD -o tun+ -j ACCEPT
+#-A FORWARD -i tun+ -j ACCEPT
+#ENCRYPTME
+:ENCRYPTME - [0:0]
+-A INPUT -j ENCRYPTME
+
+# Allow all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0.
+-A ENCRYPTME -i lo -j ACCEPT
+-A ENCRYPTME -d 127.0.0.0/8 ! -i lo -j REJECT --reject-with icmp-port-unreachable
+-A ENCRYPTME -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# All TCP sessions should begin with SYN
+-A ENCRYPTME -p tcp ! --syn -m state --state NEW -s 0/0 -j DROP
+
+#Allow limitted inbound ICMP packets
+-I ENCRYPTME -p icmp --icmp-type echo-request -m recent --set
+-I ENCRYPTME -p icmp --icmp-type echo-request -m recent --update --seconds 5 --hitcount 10 -j DROP
+-A ENCRYPTME -p icmp -j ACCEPT
+
+# SSH
+-A ENCRYPTME -p tcp -m tcp --dport 22 -j ACCEPT
+
+# OpenVPN
+{% for config in cloak_server.target.openvpn %}
+-A ENCRYPTME -p {{config.proto}} --dport {{config.port}} -j ACCEPT
+{% endfor %}
+
+# IPsec, isakmp
+-A ENCRYPTME -p udp -m udp --dport 500 -j ACCEPT
+-A ENCRYPTME -p udp -m udp --dport 4500 -j ACCEPT
+
+# DNS through the tunnel
+-A ENCRYPTME -s 100.64.0.0/10 -p udp -m udp --dport 53 -j ACCEPT
+-A ENCRYPTME -s 100.64.0.0/10 -p tcp -m tcp --dport 53 -j ACCEPT
+
+#Allow in/out from VPN network
+-A ENCRYPTME -d 100.64.0.0/10 -j ACCEPT
+-A ENCRYPTME -s 100.64.0.0/10 -j ACCEPT
+
+#VPN traffic pass through
+-A FORWARD -j ENCRYPTME
+#-A FORWARD -d 100.64.0.0/10 -j ENCRYPTME
+COMMIT
+
+*nat
+#ENCRYPTME
+:ENCRYPTME-NAT - [0:0]
+-A ENCRYPTME-NAT -s 100.64.0.0/10 -j SNAT --to-source {{ip}} --random
+-A POSTROUTING -s 100.64.0.0/10 -j ENCRYPTME-NAT
+COMMIT
