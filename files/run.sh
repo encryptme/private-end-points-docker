@@ -319,12 +319,18 @@ done
     -o /etc/iptables.eme.rules \
     -v ipaddress=$DNS
 # TODO this leaves extra rules around
-if [ ! -e /etc/iptables.original.rules ]; then
-    /sbin/iptables-save > /etc/iptables.original.rules
-fi
-/sbin/iptables -F ENCRYPTME
-cat /etc/iptables.original.rules /etc/iptables.eme.rules > /etc/iptables.rules
-/sbin/iptables-restore --noflush < /etc/iptables.rules
+# Always pull the rules that exists
+/sbin/iptables-save > /etc/iptables.original.rules
+# Merge the system rules and the eme rules
+cat /etc/iptables.original.rules >  /etc/iptables.rules
+cat /etc/iptables.eme.rules      >> /etc/iptables.rules
+# Restore the rules (might contain duplicate chains)
+/sbin/iptables-restore --noflush /etc/iptables.rules
+# Removing duplicated rules and restore iptables again
+# We need the iptables save format to properly remove duplicate rules 
+# We flush the chains after a proper parse
+/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
+
 
 
 rem "Configuring and launching OpenVPN"
