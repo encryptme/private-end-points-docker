@@ -316,9 +316,14 @@ done
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/iptables.rules.fixed.j2 \
-    -o /etc/iptables.rules \
+    -o /etc/iptables.eme.rules \
     -v ipaddress=$DNS
 # TODO this leaves extra rules around
+if [ ! -e /etc/iptables.original.rules ]; then
+    /sbin/iptables-save > /etc/iptables.original.rules
+fi
+/sbin/iptables -F ENCRYPTME
+cat /etc/iptables.original.rules /etc/iptables.eme.rules > /etc/iptables.rules
 /sbin/iptables-restore --noflush < /etc/iptables.rules
 
 
