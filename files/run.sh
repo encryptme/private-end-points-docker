@@ -315,7 +315,7 @@ done
 # generate IP tables rules
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.fixed.j2 \
+    -s /etc/iptables.rules.j2 \
     -o /etc/iptables.eme.rules \
     -v ipaddress=$DNS
 # TODO this leaves extra rules around
