@@ -225,7 +225,7 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
         "${LE_ARGS[@]}"
         --expand
         --standalone
-        --standalone-supported-challenges
+        --preferred-challenges
         http-01
     )
 
