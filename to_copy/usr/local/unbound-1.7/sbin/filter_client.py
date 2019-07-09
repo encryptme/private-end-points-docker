@@ -6,28 +6,27 @@ import os
 from time import sleep
 
 intercept_address = "0.0.0.0"
-sock_file = "/var/run/dns_filter.sock"
+# sock_file = "/var/run/dns_filter.sock"
+sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
 
 
 def check_for_socket():
     global sock_exist
-    sock_check_count = 0
-    while not os.path.exists(sock_file):
-        sleep(0.25)
-        if sock_check_count == 4:
+    for _ in range(4):
+        if os.path.exists(sock_file):
             sock_exist = True
             break
-        sock_check_count += 1
+        sleep(0.25)
 
 
-def is_bocked(name, domain_list):
+def is_blocked(name):
     # block this name, and any subdomains of that name 
     while True:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(sock_file)
         sock.sendall(json.dumps({'domain': name}))
-        return bool(str(sock.recv(2048)) == 'true')
+        return bool(str(sock.recv(2048)))
 
 
 def init(id, cfg):
@@ -69,6 +68,7 @@ def operate(id, event, qstate, qdata):
 
         qstate.return_rcode = RCODE_NOERROR
         qstate.ext_state[id] = MODULE_FINISHED
+        return True
 
     elif event == MODULE_EVENT_MODDONE:
         qstate.ext_state[id] = MODULE_FINISHED

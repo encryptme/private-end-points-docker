@@ -11,7 +11,7 @@ TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
 
 # JFK NOTES:
 # - ensure domains/IPs persist after reboot, container restart, etc
-# - 
+# -
 
 usage() {
     cat << EOF
@@ -63,7 +63,9 @@ fail() {
 reload_filter() {
     local cmd=(
         docker exec -i encryptme
-        /scripts/dns-filter &> /dev/null
+        /usr/local/unbound-1.7/sbin/filter_server.py
+    # /scripts/dns-filter
+    # &>/dev/null
     )
     "${cmd[@]}" stop
     "${cmd[@]}" start
@@ -75,16 +77,16 @@ add_ips() {
     local tmp_ip_file="$TMP_DIR/$list_name.cidr.old"
 
     # create the ipset list if needed
-    /sbin/ipset list | grep -q -w "$list_name" || {
-        /sbin/ipset -N "$list_name" hash:net \
+    sudo /usr/sbin/ipset list | grep -q -w "$list_name" || {
+        sudo /usr/sbin/ipset -N "$list_name" hash:net \
             || fail "Failed to create ipset $list_name"
     }
 
     # create the rule for this list, if needed
-    /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" || {
-        /sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list_name" dst -j DROP \
+    /usr/sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" || {
+        /usr/sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list_name" dst -j DROP \
             || fail "Failed to insert iptables rule $list_name"
-    fi
+    }
 
     # add only new IPs to the rule (duplicates are bad!)
     ipset list "$list_name" \
@@ -92,8 +94,9 @@ add_ips() {
         | sort -u > "$tmp_ip_file" \
         || fail "Failed to get IP list for '$list'"
     comm -13 "$tmp_ip_file" - | while read cidr; do
-        /sbin/ipset -A "$list_name" "$cidr"
+        /usr/sbin/ipset -A "$list_name" "$cidr"
     done
+    cat "$tmp_ip_file"
     rm "$tmp_ip_file" &>/dev/null
 }
 
@@ -125,9 +128,9 @@ prune_list() {
 
     # delete the IP table rule and ipset list
     /sbin/ipset list | grep -q "^Name: $list_name$" && {
-       /sbin/iptables-save | grep -Eq "--match-set \<$list_name\>" && {
+       /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {
           /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP
-       |
+       }
        /sbin/ipset destroy "$list_name"
     }
 
@@ -203,8 +206,13 @@ append_list() {
         fi
     done
 
-    [ -s "$cidr_file" ] && add_ips <&3
-    [ -s "$domain_file" ] && add_domains <&4
+    echo "================"
+    cat "$cidr_file"
+    cat "$domain_file"
+
+    [ -s "$cidr_file" ] && add_ips "$list_name" < "$cidr_file"
+    # [ -s "$cidr_file" ] && add_ips "$list_name" <&3
+    [ -s "$domain_file" ] && add_domains "$list_name" < "$domain_file"
     exec 3>&-
     exec 4>&-
 }

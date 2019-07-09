@@ -14,11 +14,11 @@ from daemon import Daemon
 # daemon configuration
 FILTERS_DIR = "/etc/encryptme/filters"
 SOCKET_PATH = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
-PID_FILE = "/usr/local/unbound-1.7/etc/unbound/var/run/dns-filter.pid"
+PID_FILE    = "/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
 
 
 class FilterList():
-    def __init__(self, filter_dir):
+    def __init__(self, filters_dir):
         """
         Build entries from file.
         """
@@ -57,22 +57,24 @@ class FilterDaemon(Daemon):
     def __init__(self, socket_path, filters_dir, **kwargs):
         self.socket_path = socket_path
         self.filters_dir = filters_dir
-        super(FilterDaemon, self).__init__(*kwargs)
+        super(FilterDaemon, self).__init__(**kwargs)
 
     def run(self):
         filter_list = FilterList(self.filters_dir)
-        # create the socket
+
+        #create the socket
         try:
             os.unlink(self.socket_path)
         except OSError:
             if os.path.exists(self.socket_path):
                 raise
+
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         with closing(sock):
             sock.bind(self.socket_path)
             sock.listen(1)
-            if not os.path.exists(run_dir):
-                os.makedirs(run_dir)
+            # if not os.path.exists(run_dir):
+            #     os.makedirs(run_dir)
             uid = pwd.getpwnam("unbound").pw_uid
             gid = grp.getgrnam("unbound").gr_gid
             os.chown(self.socket_path, uid, gid)
@@ -83,35 +85,57 @@ class FilterDaemon(Daemon):
             connection, address = sock.accept()
             with closing(connection):
                 data = connection.recv(2048)
-                request = json.loads(data)
-                connection.sendall(json.dumps(
-                    filter_list.query(request['domain'].strip())
-                ))
+                if data:
+                    request = json.loads(data)
+                    connection.sendall(json.dumps(
+                        filter_list.is_blocked(request['domain'].strip())
+                    ))
 
 
 if __name__ == "__main__":
     daemon = FilterDaemon(
         socket_path=SOCKET_PATH,
         filters_dir=FILTERS_DIR,
-        pid_file=PID_FILE,
+        pidfile=PID_FILE,
     )
     if len(sys.argv) != 2:
         print "Unknown command"
         sys.exit(2)
 
     if 'start' == sys.argv[1]:
-        try:
-            daemon.start()
-        except Exception as e:
-            pass
+        daemon.start()
+        # try:
+        #     daemon.start()
+        # except Exception as e:
+        #     pass
     elif 'stop' == sys.argv[1]:
         daemon.stop()
-        os.unlink(socket_path)
+        
+        try:
+            os.unlink(SOCKET_PATH)
+        except OSError:
+            if os.path.exists(SOCKET_PATH):
+                raise
+
+        # if os.path.exists(SOCKET_PATH):
+        #     if os.path.isfile(SOCKET_PATH):
+        #         os.remove(SOCKET_PATH)
+
     elif 'restart' == sys.argv[1]:
         daemon.restart()
+        # daemon.stop()
+        # os.unlink(socket_path)
+
+        # if os.path.exists(SOCKET_PATH):
+        #     if os.path.isfile(SOCKET_PATH):
+        #         os.remove(SOCKET_PATH)
+
+        # daemon.start()
+
+
     elif 'status' == sys.argv[1]:
         try:
-            pf = file(pid_file, 'r')
+            pf = file(PID_FILE, 'r')
             pid = int(pf.read().strip())
             pf.close()
         except IOError:
