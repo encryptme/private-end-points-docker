@@ -327,7 +327,7 @@ cat /etc/iptables.original.rules >  /etc/iptables.rules
 cat /etc/iptables.eme.rules      >> /etc/iptables.rules
 # Restore iptables 
 /sbin/iptables-restore --noflush /etc/iptables.rules
-# Removing duplicates and restore the rules again
+# Removing duplicates and restore the rules again (flushing)
 /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
 
 
