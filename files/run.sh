@@ -315,10 +315,9 @@ done
 # generate IP tables rules
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.j2 \
+    -s /etc/iptables.rules.fixed.j2 \
     -o /etc/iptables.eme.rules \
     -v ipaddress=$DNS
-
 # TODO this leaves extra rules around
 # Always pull the rules that exists
 /sbin/iptables-save > /etc/iptables.original.rules
@@ -331,7 +330,6 @@ cat /etc/iptables.eme.rules      >> /etc/iptables.rules
 # We need the iptables save format to properly remove duplicate rules 
 # We flush the chains after a proper parse
 /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
-
 
 
 
