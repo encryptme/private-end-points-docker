@@ -328,7 +328,7 @@ awk '/^COMMIT$/ { delete x; }; !x[$0]++' /etc/iptables.eme.rules      >> /etc/ip
 echo "###################################################"
 cat  /etc/iptables.rules
 echo "###################################################"
-/sbin/iptables-restore --verbose /etc/iptables.rules
+/sbin/iptables-restore --verbose --noflush /etc/iptables.rules
 
 
 # # Restore iptables 
