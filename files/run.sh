@@ -329,7 +329,7 @@ cat /etc/iptables.eme.rules      >> /etc/iptables.rules
 # Removing duplicated rules and restore iptables again
 # We need the iptables save format to properly remove duplicate rules 
 # We flush the chains after a proper parse
-/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
+/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' > /etc/clean.rules
 
 
 
