@@ -322,12 +322,12 @@ done
 
 # Always pull the system rules
 /sbin/iptables-save > /etc/iptables.original.rules
-# Merge the system rules and the eme rules
-cat /etc/iptables.original.rules >  /etc/iptables.rules
-cat /etc/iptables.eme.rules      >> /etc/iptables.rules
-cat /etc/iptables.rules
+# Removing duplicate rules
+awk '/^COMMIT$/ { delete x; }; !x[$0]++' /etc/iptables.original.rules >  /etc/iptables.rules
+awk '/^COMMIT$/ { delete x; }; !x[$0]++' /etc/iptables.eme.rules      >> /etc/iptables.rules
+/sbin/iptables-restore --verbose /etc/iptables.rules
 
-/sbin/iptables-restore /etc/iptables.rules
+
 # # Restore iptables 
 # /sbin/iptables-restore --noflush /etc/iptables.rules
 # # Removing duplicates and restore the rules again (flushing)
