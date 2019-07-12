@@ -312,24 +312,23 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
         modprobe $mod;
 done
 
-# generate IP tables rules
+# generate IP tables EME rules
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.fixed.j2 \
+    -s /etc/iptables.rules.j2 \
     -o /etc/iptables.eme.rules \
     -v ipaddress=$DNS
 # TODO this leaves extra rules around
-# Always pull the rules that exists
+
+# Always pull the rules
 /sbin/iptables-save > /etc/iptables.original.rules
 # Merge the system rules and the eme rules
-cat /etc/iptables.original.rules >  /etc/iptables.rules
-cat /etc/iptables.eme.rules      >> /etc/iptables.rules
-# Restore the rules (might contain duplicate chains)
-/sbin/iptables-restore --noflush /etc/iptables.rules
-# Removing duplicated rules and restore iptables again
-# We need the iptables save format to properly remove duplicate rules 
-# We flush the chains after a proper parse
-/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
+cat /etc/iptables.original.rules /etc/iptables.eme.rules > /etc/iptables.rules
+# Removing comments + empty lines
+sed -i -e 's/^#.*$//gi' -e '/^$/d' /etc/iptables.rules
+# Removing duplicates and restore the rules
+cat /etc/iptables.rules | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
+
 
 
 
