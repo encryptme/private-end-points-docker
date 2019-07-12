@@ -324,12 +324,14 @@ done
 # Merge the system rules and the eme rules
 cat /etc/iptables.original.rules >  /etc/iptables.rules
 cat /etc/iptables.eme.rules      >> /etc/iptables.rules
+# Restoring rules (might have duplicates)
+# /sbin/iptables-restore --noflush /etc/iptables.rules
 # Restore the rules (might contain duplicate chains)
-/sbin/iptables-restore --noflush /etc/iptables.rules
+#/sbin/iptables-restore --noflush /etc/iptables.rules
 # Removing duplicated rules and restore iptables again
 # We need the iptables save format to properly remove duplicate rules 
 # We flush the chains after a proper parse
-/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' > /etc/clean.rules
+#/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' > /etc/clean.rules
 
 
 
