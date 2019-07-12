@@ -320,14 +320,15 @@ done
     -v ipaddress=$DNS
 # TODO this leaves extra rules around
 
-# Always pull the rules
+# Always pull the system rules
 /sbin/iptables-save > /etc/iptables.original.rules
 # Merge the system rules and the eme rules
-cat /etc/iptables.original.rules /etc/iptables.eme.rules > /etc/iptables.rules
-# Removing comments + empty lines
-sed -i -e 's/^#.*$//gi' -e '/^$/d' /etc/iptables.rules
-# Removing duplicates and restore the rules
-cat /etc/iptables.rules | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
+cat /etc/iptables.original.rules >  /etc/iptables.rules
+cat /etc/iptables.eme.rules      >> /etc/iptables.rules
+# Restore iptables 
+/sbin/iptables-restore --noflush /etc/iptables.rules
+# Removing duplicates and restore the rules again
+/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
 
 
 
