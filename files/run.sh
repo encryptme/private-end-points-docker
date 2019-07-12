@@ -325,7 +325,9 @@ done
 # Removing duplicate rules
 awk '/^COMMIT$/ { delete x; }; !x[$0]++' /etc/iptables.original.rules >  /etc/iptables.rules
 awk '/^COMMIT$/ { delete x; }; !x[$0]++' /etc/iptables.eme.rules      >> /etc/iptables.rules
-cat /etc/iptables.rules
+echo "###################################################"
+cat  /etc/iptables.rules
+echo "###################################################"
 /sbin/iptables-restore --verbose /etc/iptables.rules
 
 
