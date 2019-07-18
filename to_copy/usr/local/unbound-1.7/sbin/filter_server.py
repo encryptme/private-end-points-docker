@@ -37,7 +37,7 @@ class FilterList():
         for name in os.listdir(filters_dir):
             if not name.endswith('.blacklist'):
                 continue
-            for domain in self._yield_lines(os.path.join([filters_dir, name])):
+            for domain in self._yield_lines(os.path.join(filters_dir, name)):
                 self.blacklist.add(domain)
 
     def is_blocked(self, domain):
@@ -73,8 +73,8 @@ class FilterDaemon(Daemon):
         with closing(sock):
             sock.bind(self.socket_path)
             sock.listen(1)
-            # if not os.path.exists(run_dir):
-            #     os.makedirs(run_dir)
+            if not os.path.exists(filters_dir):
+                os.makedirs(filters_dir)
             uid = pwd.getpwnam("unbound").pw_uid
             gid = grp.getgrnam("unbound").gr_gid
             os.chown(self.socket_path, uid, gid)

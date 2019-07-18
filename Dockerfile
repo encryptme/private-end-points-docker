@@ -21,6 +21,7 @@ ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_b
 RUN pip3.4 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 
 ENV DISABLE_LETSENCRYPT 0
+ENV PYTHONPATH "${PYTHONPATH}:/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages"
 
 ARG build_time=${build_time:-x}
 ADD to_extract /tmp/to_extract
