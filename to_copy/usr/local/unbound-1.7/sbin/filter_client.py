@@ -26,7 +26,8 @@ def is_blocked(name):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(sock_file)
         sock.sendall(json.dumps({'domain': name}))
-        return bool(str(sock.recv(2048)))
+        resp = str(sock.recv(2048))
+        return json.loads(resp)
 
 
 def init(id, cfg):

@@ -96,7 +96,7 @@ if __name__ == "__main__":
     daemon = FilterDaemon(
         socket_path=SOCKET_PATH,
         filters_dir=FILTERS_DIR,
-        pidfile=PID_FILE,
+        pidfile=PID_FILE
     )
     if len(sys.argv) != 2:
         print "Unknown command"
