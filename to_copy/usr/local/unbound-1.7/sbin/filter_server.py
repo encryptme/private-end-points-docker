@@ -73,8 +73,8 @@ class FilterDaemon(Daemon):
         with closing(sock):
             sock.bind(self.socket_path)
             sock.listen(1)
-            if not os.path.exists(filters_dir):
-                os.makedirs(filters_dir)
+            if not os.path.exists(self.filters_dir):
+                os.makedirs(self.filters_dir)
             uid = pwd.getpwnam("unbound").pw_uid
             gid = grp.getgrnam("unbound").gr_gid
             os.chown(self.socket_path, uid, gid)
