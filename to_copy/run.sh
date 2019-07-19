@@ -274,7 +274,7 @@ fi
 /usr/local/unbound-1.7/sbin/filter_server.py start \
     || fail "Failed to start DNS filter"
 # rundaemon /usr/local/unbound-1.7/sbin/unbound \
-sudo /usr/local/unbound-1.7/sbin/unbound \
+/usr/local/unbound-1.7/sbin/unbound \
     -c /usr/local/unbound-1.7/etc/unbound/unbound.conf \
     || fail "Failed to start unbound"
 
