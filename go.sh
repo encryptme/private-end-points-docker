@@ -248,7 +248,7 @@ server_run() {
     cmd docker run -d --name "$name" \
         -e SSL_EMAIL="$ssl_email" \
         -e ENCRYPTME_API_URL="$api_url" \
-        -e VERBOSE=$verbose \
+        -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
