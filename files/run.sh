@@ -178,7 +178,7 @@ fi
 # Gather server/config information (e.g. FQDNs, open VPN settings)
 rem "Getting server info"
 encryptme_server info --json
-encryptme_server info --json | jq -M | tee "$ENCRYPTME_DATA_DIR/server.json"
+encryptme_server info --json | jq -M '.' | tee "$ENCRYPTME_DATA_DIR/server.json"
 if [ ! -s "$ENCRYPTME_DATA_DIR/server.json" ]; then
     fail "Failed to get or parse server 'info' API response" 5
 fi
