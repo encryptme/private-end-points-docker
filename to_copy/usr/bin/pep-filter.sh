@@ -118,7 +118,6 @@ add_domains() {
     if [ $? -eq 0 ]; then
        docker exec -i encryptme cat "$domain_file" | sort -u > "$tmp_domain_file"
     fi
-    #comm -13 "$tmp_domain_file"  "$new_domain_file"
 
     cat "$tmp_domain_file" "$new_domain_file" | sort -u \
         | docker exec -i encryptme dd of="$domain_file" \
@@ -224,10 +223,10 @@ case "$1" in
     append|replace|prune|reset)
         action="$1"
         shift
-    ;;
+        ;;
     *)
         usage
-    fail "Invalid action: '$1'"
+        fail "Invalid action: '$1'"
 esac
 
 # JKF: consider later
@@ -275,5 +274,3 @@ esac
 cleanup
 
 exit 0
-
-
