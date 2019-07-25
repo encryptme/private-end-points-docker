@@ -4,8 +4,8 @@ BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
 FILTERS_DIR="/etc/encryptme/filters"
-DOMAIN_RE="^([A-Za-z0-9-]+\.)+[A-Za-z]{2,}$"
-CIDR_RE="^([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,3})?$"
+DOMAIN_RE="([A-Za-z0-9-]+\.)+[A-Za-z]{2,}"
+CIDR_RE="([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,3})?"
 # CIDR_RE='[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\/[0-9]\{1,\}'
 TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
     || fail "Failed to create tempory directory '$TMP_DIR'"
@@ -92,22 +92,24 @@ add_ips() {
 
     # add only new IPs to the rule (duplicates are bad!)
     ipset list "$list_name" \
-        | grep -o "$CIDR_RE" \
+        | grep -Eo "$CIDR_RE" \
         | sort -u > "$tmp_ip_file" \
         || fail "Failed to get IP list for '$list'"
     comm -13 "$tmp_ip_file" - | while read cidr; do
         /usr/sbin/ipset -A "$list_name" "$cidr"
     done
-    cat "$tmp_ip_file"
     rm "$tmp_ip_file" &>/dev/null
 }
 
 
+
 add_domains() {
     local list_name="$1"
+    local new_domain_file="$2"
     local tmp_domain_file="$TMP_DIR/domains.old"
     local domain_file="$FILTERS_DIR/$list_name.blacklist"
 
+    touch "$tmp_domain_file" || fail "Failed to create temp domain file"
     docker exec -i encryptme mkdir -p "$FILTERS_DIR" \
         || fail "Failed to create blacklists directory"
 
@@ -116,9 +118,11 @@ add_domains() {
     if [ $? -eq 0 ]; then
        docker exec -i encryptme cat "$domain_file" | sort -u > "$tmp_domain_file"
     fi
-    comm -13 "$tmp_domain_file" - \
+    #comm -13 "$tmp_domain_file"  "$new_domain_file"
+
+    cat "$tmp_domain_file" "$new_domain_file" | sort -u \
         | docker exec -i encryptme dd of="$domain_file" \
-           || fail "Failed to write $domain_file"
+            || fail "Failed to write $domain_file"
     reload_filter \
        || fail "Failed to reload dns-filter"
 }
@@ -168,6 +172,7 @@ reset_filters() {
     reload_filter
 }
 
+
 # JKF: support this later
 #whitelist_ip () {
 #    /sbin/ipset list whitelist | grep -q "$whitelist_me"
@@ -198,18 +203,14 @@ append_list() {
     local domain_file="$TMP_DIR/$list_name.domains"
 
     # each line must be a domain name or a IPv4 CIDR range
-    exec 3> "$cidr_file"
-    exec 4> "$domain_file"
     while read item; do
         echo "$item" | grep -Eq "$CIDR_RE" && echo "$item" >> "$cidr_file"
         [ $? = 1 ] && echo "$item" | grep -Eq "$DOMAIN_RE" && \
             echo "$item" >> "$domain_file"
     done
 
-    [ -s "$cidr_file" ] && add_ips "$list_name" < "$cidr_file"
-    [ -s "$domain_file" ] && add_domains "$list_name" < "$domain_file"
-    exec 3>&-
-    exec 4>&-
+    [ -s "$cidr_file" ] && cat "$cidr_file" | sort -u | add_ips "$list_name"
+    [ -s "$domain_file" ] &&  add_domains "$list_name" "$domain_file"
 }
 
 
@@ -223,10 +224,10 @@ case "$1" in
     append|replace|prune|reset)
         action="$1"
         shift
-        ;;
+    ;;
     *)
         usage
-        fail "Invalid action: '$1'"
+    fail "Invalid action: '$1'"
 esac
 
 # JKF: consider later
@@ -241,6 +242,7 @@ esac
 #   /sbin/iptables -I ENCRYPTME -m set --match-set whitelist dst -j ACCEPT \
 #      || fail "Failed to insert iptables rule"
 #fi
+
 
 [ "$action" = "append" ] && {
     [ $# -eq 1 ] || fail "No list name given to append to"
@@ -273,3 +275,5 @@ esac
 cleanup
 
 exit 0
+
+
