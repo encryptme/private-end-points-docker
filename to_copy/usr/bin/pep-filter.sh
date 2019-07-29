@@ -97,7 +97,6 @@ add_ips() {
 }
 
 
-
 add_domains() {
     local list_name="$1"
     local new_domain_file="$2"
@@ -136,9 +135,9 @@ prune_list() {
        rm -f "$domain_file"
        reload_filter
     }
-
     return 0
 }
+
 
 reset_filters() {
     list_name="${1:-}"  # if set, deletes a specific list
@@ -244,6 +243,7 @@ esac
 [ "$action" = "replace" ] && {
     [ $# -eq 1 ] || fail "No list name given to replace"
     list_name="$1" && shift
+    prune_list "$list_name"
     append_list "$list_name"
 }
 
