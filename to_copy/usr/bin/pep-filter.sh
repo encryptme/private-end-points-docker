@@ -6,14 +6,12 @@ SCRIPT_NAME=$(basename "$0")
 FILTERS_DIR="/etc/encryptme/filters"
 DOMAIN_RE="^([A-Za-z0-9-]+\.)+[A-Za-z]{2,}"
 CIDR_RE="([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,3})?"
-# CIDR_RE='[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\/[0-9]\{1,\}'
 TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
-    || fail "Failed to create tempory directory '$TMP_DIR'"
+    || fail "Failed to create temporary directory '$TMP_DIR'"
 
 
 # JFK NOTES:
 # - ensure domains/IPs persist after reboot, container restart, etc
-# -
 
 usage() {
     cat << EOF
@@ -22,7 +20,7 @@ usage: $SCRIPT_NAME ACTION ARGS
 Automated DNS and IPv4 CIDR filtering based on arbitrary lists. Reads STDIN
 for a list of domains or IPv4 CIDR ranges.
 
-  - Domains are sync'd in '$FILTERS_DIR' and read by the DNS filter socket server
+  - Domains are sync'd in $FILTERS_DIR and read by the DNS filter socket server
   - IP sets are created and used in iptables to filter out IPs; writes rules to:
      - /etc/iptables.save
      - /etc/ipset.save
@@ -89,13 +87,12 @@ add_ips() {
     ipset list "$list_name" \
         | grep -Eo "$CIDR_RE" \
         | sort -u > "$tmp_ip_file" \
-        || fail "Failed to get IP list for '$list'"
+        || fail "Failed to get IP list for '$list_name'"
     comm -13 "$tmp_ip_file" - | while read cidr; do
         /usr/sbin/ipset -A "$list_name" "$cidr"
     done
     rm "$tmp_ip_file" &>/dev/null
 }
-
 
 
 add_domains() {
@@ -140,6 +137,7 @@ prune_list() {
     return 0
 }
 
+
 reset_filters() {
     list_name="${1:-}"  # if set, deletes a specific list
     # delete all ipset lists and iptables rules
@@ -150,16 +148,15 @@ reset_filters() {
        #   docker exec -i encryptme truncate -s 0 /usr/local/unbound-1.7/etc/unbound/whitelist.txt \
        #      || fail "Failed to delete domain list $list.txt"
        #else
-      /sbin/iptables -D ENCRYPTME -m set --match-set "$list" dst -j DROP \
-          || fail "Failed to delete iptables rule for the list $list"
-       /sbin/ipset destroy "$list" \
-          || fail "Failed to delete ipset $list"
+      /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP \
+          || fail "Failed to delete iptables rule for the list $list_name"
+       /sbin/ipset destroy "$list_name" \
+          || fail "Failed to delete ipset $list_name"
     done
 
     # remove our domain blacklists
     rm -rf "$FILTERS_DIR" \
        || fail "Failed to delete domain lists"
-
     reload_filter
 }
 
@@ -204,8 +201,6 @@ append_list() {
     [ -s "$domain_file" ] &&  add_domains "$list_name" "$domain_file"
 }
 
-
-# ===========================================================================
 
 [ $# -ge 1 ] || {
     usage
@@ -257,7 +252,7 @@ esac
     reset_filters
 }
 
-# ensure our IP tables are up-to-date so we can restore them on restart
+# Ensure our IP tables are up-to-date so we can restore them on restart.
 /usr/sbin/iptables-save > /etc/iptables.save \
    || fail "Failed to write /etc/iptables.save"
 /usr/sbin/ipset save > /etc/ipset.save \
