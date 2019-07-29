@@ -35,11 +35,11 @@ ACTIONS:
 EXAMPLES:
 
     # Add the list 'security'
-    $SCRIPT_NAME add security < /opt/lists/security.txt
-    echo 'google.com' | ./$SCRIPT_NAME add security
+    $SCRIPT_NAME append security < /opt/lists/security.txt
+    echo 'google.com' | ./$SCRIPT_NAME append security
 
     # Stop filtering all domains/IPs in 'security' list
-    $SCRIPT_NAME delete -l security
+    $SCRIPT_NAME prune security
 
     # Reset everything to stop all filtering
     $SCRIPT_NAME reset
@@ -147,15 +147,15 @@ reset_filters() {
        #   docker exec -i encryptme truncate -s 0 /usr/local/unbound-1.7/etc/unbound/whitelist.txt \
        #      || fail "Failed to delete domain list $list.txt"
        #else
-      /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP \
-          || fail "Failed to delete iptables rule for the list $list_name"
-       /sbin/ipset destroy "$list_name" \
-          || fail "Failed to delete ipset $list_name"
+        /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP \
+           || fail "Failed to delete iptables rule for the list $list_name"
+        /sbin/ipset destroy "$list_name" \
+           || fail "Failed to delete ipset $list_name"
     done
 
     # remove our domain blacklists
     rm -rf "$FILTERS_DIR" \
-       || fail "Failed to delete domain lists"
+        || fail "Failed to delete domain lists"
     reload_filter
 }
 
