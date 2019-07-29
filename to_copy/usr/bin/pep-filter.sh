@@ -4,7 +4,7 @@ BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
 FILTERS_DIR="/etc/encryptme/filters"
-DOMAIN_RE="([A-Za-z0-9-]+\.)+[A-Za-z]{2,}"
+DOMAIN_RE="^([A-Za-z0-9-]+\.)+[A-Za-z]{2,}"
 CIDR_RE="([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,3})?"
 TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
     || fail "Failed to create temporary directory '$TMP_DIR'"
@@ -61,13 +61,9 @@ fail() {
 
 
 reload_filter() {
-    local cmd=(
-        docker exec -i encryptme
-        /usr/local/unbound-1.7/sbin/filter_server.py
-    # &>/dev/null
-    )
-    "${cmd[@]}" stop
-    "${cmd[@]}" start
+    local cmd="/usr/local/unbound-1.7/sbin/filter_server.py"
+    "$cmd" stop
+    "$cmd" start
 }
 
 
@@ -76,8 +72,8 @@ add_ips() {
     local tmp_ip_file="$TMP_DIR/$list_name.cidr.old"
 
     # create the ipset list if needed
-    sudo /usr/sbin/ipset list | grep -q -w "$list_name" || {
-        sudo /usr/sbin/ipset -N "$list_name" hash:net \
+    /usr/sbin/ipset list | grep -q -w "$list_name" || {
+        /usr/sbin/ipset -N "$list_name" hash:net \
             || fail "Failed to create ipset $list_name"
     }
 
@@ -106,19 +102,17 @@ add_domains() {
     local domain_file="$FILTERS_DIR/$list_name.blacklist"
 
     touch "$tmp_domain_file" || fail "Failed to create temp domain file"
-    docker exec -i encryptme mkdir -p "$FILTERS_DIR" \
+    mkdir -p "$FILTERS_DIR" \
         || fail "Failed to create blacklists directory"
 
     # keep things clean add keep dupes scrubbed out as we update the domain list
-    docker exec -i encryptme bash -c "[ -s '$domain_file' ]"
-    if [ $? -eq 0 ]; then
-       docker exec -i encryptme cat "$domain_file" | sort -u > "$tmp_domain_file"
-    fi
+    [ -s '$domain_file' ] && \
+        cat "$domain_file" | sort -u > "$tmp_domain_file"
 
-    cat "$tmp_domain_file" "$new_domain_file" | sort -u \
-        | docker exec -i encryptme dd of="$domain_file" \
-            || fail "Failed to write $domain_file"
-    reload_filter || fail "Failed to reload dns-filter"
+    cat "$tmp_domain_file" "$new_domain_file" | sort -u > "$domain_file" \
+        || fail "Failed to write $domain_file"
+    reload_filter \
+       || fail "Failed to reload dns-filter"
 }
 
 
@@ -134,9 +128,9 @@ prune_list() {
        /sbin/ipset destroy "$list_name"
     }
 
-    # delete any domain lists
-    docker exec encryptme bash -c "[ -f '$domain_file' ]" && {
-       docker exec -i encryptme rm -f "$domain_file"
+    # delete a domain blacklist file
+    [ -f "$domain_file" ] && {
+       rm -f "$domain_file"
        reload_filter
     }
 
@@ -161,7 +155,7 @@ reset_filters() {
     done
 
     # remove our domain blacklists
-    docker exec encryptme rm -rf "$FILTERS_DIR" \
+    rm -rf "$FILTERS_DIR" \
        || fail "Failed to delete domain lists"
     reload_filter
 }
