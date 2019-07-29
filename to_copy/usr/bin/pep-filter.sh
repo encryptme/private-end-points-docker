@@ -136,7 +136,7 @@ prune_list() {
 
     # delete any domain lists
     docker exec encryptme bash -c "[ -f '$domain_file' ]" && {
-       docker exec -i encryptme rm -f "$list_name"
+       docker exec -i encryptme rm -f "$domain_file"
        reload_filter
     }
 
