@@ -67,6 +67,57 @@ reload_filter() {
 }
 
 
+new_add_ips() {
+    local list_name="$1"
+    local tmp_old_ip_file="$TMP_DIR/$list_name.cidr.old"
+    local tmp_new_ip_file="$TMP_DIR/$list_name.cidr.new"
+    local split_dir="$TMP_DIR/split"
+
+    touch "$tmp_old_ip_file" || fail "Failed to create temp old ip file"
+    
+    mkdir -p "$split_dir" \
+        || fail "Failed to create temporary directory '$split_dir'"
+
+    /sbin/ipset list | awk '$1 == "Name:" { print $2}' \
+        | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
+
+        ipset list "$sublist" \
+            | grep -Eo "$CIDR_RE" >> "$tmp_old_ip_file" \
+            || fail "Failed to get IP list for '$sublist'"
+
+        /sbin/iptables -D ENCRYPTME -m set --match-set "$sublist" dst -j DROP \
+           || fail "Failed to delete iptables rule for the list $sublist"
+
+        /sbin/ipset destroy "$sublist" \
+           || fail "Failed to delete ipset $sublist"
+    done
+
+    while read cidr; do
+        echo "$cidr" >> "$tmp_new_ip_file"
+    done   
+
+    cat "$tmp_old_ip_file" "$tmp_new_ip_file" \
+        | sort -u \
+        | split -d -l 65*1000 - "$split_dir/$list_name."
+    # split -d -l 4 "$tmp_old_ip_file" "$split_dir/$list_name."
+
+    ls "$split_dir" | grep -E "$list_name\.[0-9]{2}" | while read list; do
+        echo "$list"
+        cat "$split_dir/$list"
+
+        /usr/sbin/ipset -N "$list" hash:net \
+            || fail "Failed to create ipset $list"
+
+        /usr/sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list" dst -j DROP \
+            || fail "Failed to insert iptables rule $list"
+
+        cat "$split_dir/$list" | while read cidr; do
+            /usr/sbin/ipset -A "$list" "$cidr"
+        done
+    done
+}
+
+
 add_ips() {
     local list_name="$1"
     local tmp_ip_file="$TMP_DIR/$list_name.cidr.old"
@@ -121,12 +172,22 @@ prune_list() {
     local domain_file="$FILTERS_DIR/$list_name.blacklist"
 
     # delete the IP table rule and ipset list
-    /sbin/ipset list | grep -q "^Name: $list_name$" && {
-       /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {
-          /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP
-       }
-       /sbin/ipset destroy "$list_name"
-    }
+    /sbin/ipset list | awk '$1 == "Name:" { print $2}' \
+        | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
+
+        /sbin/iptables -D ENCRYPTME -m set --match-set "$sublist" dst -j DROP \
+           || fail "Failed to delete iptables rule for the list $sublist"
+
+        /sbin/ipset destroy "$sublist" \
+           || fail "Failed to delete ipset $sublist"
+    done
+
+    # /sbin/ipset list | grep -q "^Name: $list_name$" && {
+    #    /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {
+    #       /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP
+    #    }
+    #    /sbin/ipset destroy "$list_name"
+    # }
 
     # delete a domain blacklist file
     [ -f "$domain_file" ] && {
@@ -196,7 +257,7 @@ append_list() {
             echo "$item" >> "$domain_file"
     done
 
-    [ -s "$cidr_file" ] && cat "$cidr_file" | sort -u | add_ips "$list_name"
+    [ -s "$cidr_file" ] && cat "$cidr_file" | sort -u | new_add_ips "$list_name"
     [ -s "$domain_file" ] &&  add_domains "$list_name" "$domain_file"
 }
 
