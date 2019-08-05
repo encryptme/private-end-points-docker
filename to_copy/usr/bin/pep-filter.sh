@@ -67,7 +67,7 @@ reload_filter() {
 }
 
 
-new_add_ips() {
+add_ips() {
     local list_name="$1"
     local tmp_old_ip_file="$TMP_DIR/$list_name.cidr.old"
     local tmp_new_ip_file="$TMP_DIR/$list_name.cidr.new"
@@ -98,13 +98,9 @@ new_add_ips() {
 
     cat "$tmp_old_ip_file" "$tmp_new_ip_file" \
         | sort -u \
-        | split -d -l 65*1000 - "$split_dir/$list_name."
-    # split -d -l 4 "$tmp_old_ip_file" "$split_dir/$list_name."
+        | split -d -l 65000 - "$split_dir/$list_name."
 
     ls "$split_dir" | grep -E "$list_name\.[0-9]{2}" | while read list; do
-        echo "$list"
-        cat "$split_dir/$list"
-
         /usr/sbin/ipset -N "$list" hash:net \
             || fail "Failed to create ipset $list"
 
@@ -115,34 +111,6 @@ new_add_ips() {
             /usr/sbin/ipset -A "$list" "$cidr"
         done
     done
-}
-
-
-add_ips() {
-    local list_name="$1"
-    local tmp_ip_file="$TMP_DIR/$list_name.cidr.old"
-
-    # create the ipset list if needed
-    /usr/sbin/ipset list | grep -q -w "$list_name" || {
-        /usr/sbin/ipset -N "$list_name" hash:net \
-            || fail "Failed to create ipset $list_name"
-    }
-
-    # create the rule for this list, if needed
-    /usr/sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" || {
-        /usr/sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list_name" dst -j DROP \
-            || fail "Failed to insert iptables rule $list_name"
-    }
-
-    # add only new IPs to the rule (duplicates are bad!)
-    ipset list "$list_name" \
-        | grep -Eo "$CIDR_RE" \
-        | sort -u > "$tmp_ip_file" \
-        || fail "Failed to get IP list for '$list_name'"
-    comm -13 "$tmp_ip_file" - | while read cidr; do
-        /usr/sbin/ipset -A "$list_name" "$cidr"
-    done
-    rm "$tmp_ip_file" &>/dev/null
 }
 
 
@@ -257,7 +225,7 @@ append_list() {
             echo "$item" >> "$domain_file"
     done
 
-    [ -s "$cidr_file" ] && cat "$cidr_file" | sort -u | new_add_ips "$list_name"
+    [ -s "$cidr_file" ] && cat "$cidr_file" | sort -u | add_ips "$list_name"
     [ -s "$domain_file" ] &&  add_domains "$list_name" "$domain_file"
 }
 
