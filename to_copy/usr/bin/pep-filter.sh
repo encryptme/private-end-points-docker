@@ -203,18 +203,18 @@ append_list() {
 
 unbound_health() {
     unbound_process=`pgrep unbound`
-    # When `unbound` pid is not found.
+    # When `unbound` pid is not found, exit with 1, otherwise 0.
     if [ -z "$unbound_process" ]; then
-        exit 2
+        exit 1
     fi
     exit 0
 }
 
 filter_server_health() {
     filter_server_process=`pgrep filter_server`
-    # When `filter_server` pid is not found.
+    # When `filter_server` pid is not found, exit with 1, otherwise 0.
     if [ -z "$filter_server_process" ]; then
-        exit 2
+        exit 1
     fi
     exit 0
 }
