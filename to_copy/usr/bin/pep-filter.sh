@@ -214,12 +214,31 @@ append_list() {
 }
 
 
+unbound_health() {
+    unbound_process=`pgrep unbound`
+    # When `unbound` pid is not found, exit with 1, otherwise 0.
+    if [ -z "$unbound_process" ]; then
+        exit 1
+    fi
+    exit 0
+}
+
+filter_server_health() {
+    filter_server_process=`pgrep filter_server`
+    # When `filter_server` pid is not found, exit with 1, otherwise 0.
+    if [ -z "$filter_server_process" ]; then
+        exit 1
+    fi
+    exit 0
+}
+
+
 [ $# -ge 1 ] || {
     usage
     fail "No action given"
 }
 case "$1" in
-    append|replace|prune|reset)
+    append|replace|prune|reset|unbound_health|filter_server_health)
         action="$1"
         shift
         ;;
@@ -263,6 +282,14 @@ esac
 
 [ "$action" = "reset" ] && {
     reset_filters
+}
+
+[ "$action" = "unbound_health" ] && {
+    unbound_health
+}
+
+[ "$action" = "filter_server_health" ] && {
+    filter_server_health
 }
 
 # Ensure our IP tables are up-to-date so we can restore them on restart.
