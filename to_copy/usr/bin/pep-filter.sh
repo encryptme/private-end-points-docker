@@ -82,8 +82,10 @@ add_ips() {
         ipset list "$sublist" \
             | grep -Eo "$CIDR_RE" >> "$tmp_old_ip_file" \
             || fail "Failed to get IP list for '$sublist'"
-        /sbin/iptables -D ENCRYPTME -m set --match-set "$sublist" dst -j DROP \
-           || fail "Failed to delete iptables rule for the list $sublist"
+        /sbin/iptables-save | grep -Eq -- "--match-set \<$sublist\>" && {            
+            /sbin/iptables -D ENCRYPTME -m set --match-set "$sublist" dst -j DROP \
+               || fail "Failed to delete iptables rule for the list $sublist"
+        }
         /sbin/ipset destroy "$sublist" \
            || fail "Failed to delete ipset $sublist"
     done
@@ -104,8 +106,10 @@ add_ips() {
             echo "${ARRAY[*]}" | ipset restore
         IFS="$OLDIFS"
 
-        /usr/sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list" dst -j DROP \
+        /sbin/iptables-save | grep -Eq -- "--match-set \<$list\>" || {     
+            /usr/sbin/iptables -I ENCRYPTME 2 -m set --match-set "$list" dst -j DROP \
             || fail "Failed to insert iptables rule $list"
+        }
     done
 }
 
@@ -137,8 +141,10 @@ prune_list() {
 
     # delete the IP table rule and ipset list
     /sbin/ipset -n list | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
-        /sbin/iptables -D ENCRYPTME -m set --match-set "$sublist" dst -j DROP \
-           || fail "Failed to delete iptables rule for the list $sublist"
+        /sbin/iptables-save | grep -Eq -- "--match-set \<$sublist\>" && {     
+            /sbin/iptables -D ENCRYPTME -m set --match-set "$sublist" dst -j DROP \
+               || fail "Failed to delete iptables rule for the list $sublist"
+        }
         /sbin/ipset destroy "$sublist" \
            || fail "Failed to delete ipset $sublist"
     done
@@ -161,8 +167,10 @@ reset_filters() {
        #   docker exec -i encryptme truncate -s 0 /usr/local/unbound-1.7/etc/unbound/whitelist.txt \
        #      || fail "Failed to delete domain list $list.txt"
        #else
-        /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP \
-           || fail "Failed to delete iptables rule for the list $list_name"
+        /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {     
+            /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP \
+               || fail "Failed to delete iptables rule for the list $list_name"
+        }
         /sbin/ipset destroy "$list_name" \
            || fail "Failed to delete ipset $list_name"
     done
