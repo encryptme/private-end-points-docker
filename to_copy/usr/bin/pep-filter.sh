@@ -125,7 +125,7 @@ add_domains() {
         || fail "Failed to create blacklists directory"
 
     # keep things clean add keep dupes scrubbed out as we update the domain list
-    [ -s '$domain_file' ] && \
+    [ -s "$domain_file" ] && \
         cat "$domain_file" | sort -u > "$tmp_domain_file"
 
     cat "$tmp_domain_file" "$new_domain_file" | sort -u > "$domain_file" \
