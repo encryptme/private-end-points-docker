@@ -5,7 +5,7 @@ cipher {{cloak_server.cipher}}
 auth {{cloak_server.digest}}
 
 {% if not logging %}
-log-append /dev/null
+    log-append /dev/null
 {% endif %}
 
 server {% if cloak_server.proto=='udp' %}100.64.0.0{% else %}100.64.64.0{% endif %} 255.255.192.0
@@ -25,9 +25,10 @@ remote-cert-eku "TLS Web Client Authentication"
 
 keepalive 10 120
 {% if cloak_server.proto == 'udp' %}
-push "explicit-exit-notify"
+    push "explicit-exit-notify"
+    fast-io
 {% elif cloak_server.proto == 'tcp' %}
-tcp-nodelay
+    tcp-nodelay
 {% endif %}
 
 comp-lzo
