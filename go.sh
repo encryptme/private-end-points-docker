@@ -432,23 +432,6 @@ esac
 #    /sbin/sysctl -p /etc/sysctl.conf
 }
 
-# JKF/FIXME/TODO:
-# this really should to happen in the PEP; we also need to ensure rules are restored on reboot, as this script is only run on initial setup
-load_iptables () {
-    if [ ! -f /etc/iptables.save ]; then
-       "$BASE_DIR/template.py" \
-       -d "/etc/encryptme/data/server.json" \
-       -s "$BASE_DIR/configs/iptables.rules.j2" \
-       -o /etc/iptables.save
-    fi
-
-    if [ -f /etc/ipset.save ]; then
-        /sbin/iptables -F ENCRYPTME
-        /usr/sbin/ipset destroy
-        /usr/sbin/ipset restore < /etc/ipset.save
-    fi
-    /sbin/iptables-restore < /etc/iptables.save
-}
 
 
 # perform the main action
@@ -463,7 +446,6 @@ load_iptables () {
         server_watch || fail "Failed to start Docker watchtower"
     }
     rem "starting $name container"
-    load_iptables || fail "Failed to load iptable rules"
     server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
 }
 
