@@ -379,7 +379,7 @@ if [ -f /etc/encryptme/iptables.save ]; then
 else
     /bin/template.py \
        -d "/etc/encryptme/data/server.json" \
-       -s "$BASE_DIR/configs/iptables.rules.j2" \
+       -s "/etc/iptables.rules.j2" \
        -o /etc/encryptme/iptables.save
     /sbin/iptables-restore < /etc/encryptme/iptables.save
 fi
