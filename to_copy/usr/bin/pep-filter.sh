@@ -301,10 +301,10 @@ esac
 }
 
 # Ensure our IP tables are up-to-date so we can restore them on restart.
-/usr/sbin/iptables-save > /etc/iptables.save \
-   || fail "Failed to write /etc/iptables.save"
-/usr/sbin/ipset save > /etc/ipset.save \
-   || fail "Failed to write /etc/ipset.save"
+/usr/sbin/iptables-save > /etc/encryptme/iptables.save \
+   || fail "Failed to write /etc/encryptme/iptables.save"
+/usr/sbin/ipset save > /etc/encryptme/ipset.save \
+   || fail "Failed to write /etc/encryptme/ipset.save"
 
 cleanup
 

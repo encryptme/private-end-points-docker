@@ -367,6 +367,24 @@ rem "Configuring and starting strongSwan"
 }
 
 
+# Restore IP tables on restart
+if [ -f /etc/encryptme/ipset.save ]; then
+    /sbin/iptables -F ENCRYPTME
+    /usr/sbin/ipset destroy
+    /usr/sbin/ipset restore < /etc/encryptme/ipset.save
+fi
+
+if [ -f /etc/encryptme/iptables.save ]; then
+    /sbin/iptables-restore < /etc/encryptme/iptables.save
+else
+    /bin/template.py \
+       -d "/etc/encryptme/data/server.json" \
+       -s "$BASE_DIR/configs/iptables.rules.j2" \
+       -o /etc/encryptme/iptables.save
+    /sbin/iptables-restore < /etc/encryptme/iptables.save
+fi
+
+
 # the DNS filter must be running before unbound
 /usr/local/unbound-1.7/sbin/filter_server.py start \
     || fail "Failed to start DNS filter"
