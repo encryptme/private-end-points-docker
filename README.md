@@ -82,7 +82,6 @@ GENERIC OPTIONS:
                           (default: letsencrypt)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
-    -s|--safe-pep         Enable Adware/Malware block
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -113,40 +112,5 @@ EXAMPLES:
     # run the newly initialized server
     ./go.sh run
 
-=================================================================================================
 
-# safe-pep.sh Usage
-
-usage: safe-pep.sh ACTION ARGS
-
-ACTIONS:
-
-    add    	Import a list of IP addresses or domains
-    whitelist   Whitelist an IP or domain
-    delete   	Delete an ipset or domain list and all iptables references
-    destroy	Remove all ipsets and domains lists
-
-ADD OPTIONS:
-    -l		List name to create or modify
-    -f      	Source file to import
-
-WHITELIST OPTIONS:
-    -w 		IP address or domain to whitelist
-
-DELETE OPTIONS:
-    -l       	List name to delete
-
-EXAMPLES:
-
-    # Add the list 'security'
-    ./safe-pep.sh add -l security -f /opt/lists/security.txt
-
-    # Whitelist an IP or domain
-    ./safe-pep.sh whitelist -w 1.1.1.1
-
-    # Delete the list 'security' completely
-    ./safe-pep.sh delete -l security
-
-    # Delete evrrything
-    ./safe-pep.sh destroy
 ```
