@@ -177,7 +177,8 @@ fi
 
 # Gather server/config information (e.g. FQDNs, open VPN settings)
 rem "Getting server info"
-encryptme_server info --json | json_pp | tee "$ENCRYPTME_DATA_DIR/server.json"
+encryptme_server info --json
+encryptme_server info --json | jq -M '.' | tee "$ENCRYPTME_DATA_DIR/server.json"
 if [ ! -s "$ENCRYPTME_DATA_DIR/server.json" ]; then
     fail "Failed to get or parse server 'info' API response" 5
 fi
@@ -198,7 +199,7 @@ if [ $DNS_CHECK -ne 0 ]; then
     EXTIP=$(curl --connect-timeout 5 -s http://169.254.169.254/latest/meta-data/public-ipv4)
     for hostname in $FQDNS; do
         rem "Checking DNS for FQDN '$hostname'"
-        DNS=`kdig +short A $hostname | egrep '^[0-9]+\.'`
+        DNS=`dig +short A $hostname | egrep '^[0-9]+\.'`
         if [ ! -z "$DNS" ]; then
             rem "Found IP '$DNS' for $hostname"
             if ip addr show | grep "$DNS" > /dev/null; then
@@ -254,7 +255,6 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
         "${LE_ARGS[@]}"
         --expand
         --standalone
-        --preferred-challenges http-01
     )
 
     # temporarily allow in HTTP traffic to perform domain verification
