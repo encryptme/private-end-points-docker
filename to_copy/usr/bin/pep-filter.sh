@@ -161,12 +161,6 @@ prune_list() {
 reset_filters() {
     # delete all ipset lists and iptables rules
     /sbin/ipset -n list | while read list_name; do
-       #if [ "$list" == "whitelist" ]; then
-       #   /sbin/iptables -D ENCRYPTME -m set --match-set "$list" dst -j ACCEPT \
-       #      || fail "Failed to delete iptables rule for the list $list"
-       #   docker exec -i encryptme truncate -s 0 /usr/local/unbound-1.7/etc/unbound/whitelist.txt \
-       #      || fail "Failed to delete domain list $list.txt"
-       #else
         /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {     
             /sbin/iptables -D ENCRYPTME -m set --match-set "$list_name" dst -j DROP \
                || fail "Failed to delete iptables rule for the list $list_name"
@@ -180,29 +174,6 @@ reset_filters() {
         || fail "Failed to delete domain lists"
     reload_filter
 }
-
-
-# JKF: support this later
-#whitelist_ip () {
-#    /sbin/ipset list whitelist | grep -q "$whitelist_me"
-#    if [ $? -eq 1 ]; then
-#       /sbin/ipset -A whitelist "$whitelist_me" \
-#          || fail "Failed to whitelist IP $whitelist_me"
-#    else
-#       fail "$whitelist_me exists in whitelist"
-#    fi
-#}
-#
-#whitelist_domain () {
-#    docker exec -it encryptme grep -q "$whitelist_me" /usr/local/unbound-1.7/etc/unbound/whitelist.txt
-#    if [ $? -eq 1 ]; then
-#       docker exec -it encryptme bash -c "echo "$whitelist_me" >> /usr/local/unbound-1.7/etc/unbound/whitelist.txt" \
-#          || fail "Failed to whitelist domain $whitelist_me"
-#       reload_filter || fail "Failed to reload dns-filter"
-#    else
-#       fail "$whitelist_me exists in whitelist"
-#    fi
-#}
 
 
 # reads stdin to parse IPv4 CIDR ranges and domain names and filter them out
@@ -254,19 +225,6 @@ case "$1" in
         usage
         fail "Invalid action: '$1'"
 esac
-
-# JKF: consider later
-#/sbin/ipset list | grep -q whitelist
-#if [ $? -eq 1 ]; then
-#   /sbin/ipset -N whitelist iphash \
-#      || fail "Failed to create ipset whitelist"
-#fi
-#
-#/sbin/iptables-save | grep -q whitelist
-#if [ $? -eq 1 ]; then
-#   /sbin/iptables -I ENCRYPTME -m set --match-set whitelist dst -j ACCEPT \
-#      || fail "Failed to insert iptables rule"
-#fi
 
 
 [ "$action" = "append" ] && {
