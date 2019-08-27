@@ -17,6 +17,14 @@ SOCKET_PATH = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 PID_FILE    = "/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
 
 
+def delete_socket_path(socket_path):
+    try:
+        os.unlink(socket_path)
+    except OSError:
+        if os.path.exists(socket_path):
+            raise
+
+
 class FilterList():
     def __init__(self, filters_dir):
         """
@@ -62,13 +70,9 @@ class FilterDaemon(Daemon):
     def run(self):
         filter_list = FilterList(self.filters_dir)
 
-        #create the socket
-        try:
-            os.unlink(self.socket_path)
-        except OSError:
-            if os.path.exists(self.socket_path):
-                raise
+        delete_socket_path(self.socket_path)
 
+        #create the socket
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         with closing(sock):
             sock.bind(self.socket_path)
@@ -92,46 +96,29 @@ class FilterDaemon(Daemon):
                     ))
 
 
+
 if __name__ == "__main__":
     daemon = FilterDaemon(
         socket_path=SOCKET_PATH,
         filters_dir=FILTERS_DIR,
         pidfile=PID_FILE
     )
+
     if len(sys.argv) != 2:
         print "Unknown command"
         sys.exit(2)
 
     if 'start' == sys.argv[1]:
         daemon.start()
-        # try:
-        #     daemon.start()
-        # except Exception as e:
-        #     pass
+
     elif 'stop' == sys.argv[1]:
         daemon.stop()
-        
-        try:
-            os.unlink(SOCKET_PATH)
-        except OSError:
-            if os.path.exists(SOCKET_PATH):
-                raise
-
-        # if os.path.exists(SOCKET_PATH):
-        #     if os.path.isfile(SOCKET_PATH):
-        #         os.remove(SOCKET_PATH)
-
+        delete_socket_path(SOCKET_PATH)
+    
     elif 'restart' == sys.argv[1]:
-        daemon.restart()
-        # daemon.stop()
-        # os.unlink(socket_path)
-
-        # if os.path.exists(SOCKET_PATH):
-        #     if os.path.isfile(SOCKET_PATH):
-        #         os.remove(SOCKET_PATH)
-
-        # daemon.start()
-
+        daemon.stop()
+        delete_socket_path(SOCKET_PATH)
+        daemon.start()
 
     elif 'status' == sys.argv[1]:
         try:

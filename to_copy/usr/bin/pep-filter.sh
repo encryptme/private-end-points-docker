@@ -184,7 +184,6 @@ append_list() {
     local stdin="$TMP_DIR/$list_name.stdin"
 
     cat > "$stdin"
-
     cat "$stdin" | grep -E "$CIDR_RE" > "$cidr_file"
     cat "$stdin" | grep -E "$DOMAIN_RE" > "$domain_file"
 

@@ -6,7 +6,6 @@ import os
 from time import sleep
 
 intercept_address = "0.0.0.0"
-# sock_file = "/var/run/dns_filter.sock"
 sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
 
