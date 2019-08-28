@@ -220,11 +220,17 @@ fi
 # make sure the domain is resolving to us properly
 if [ -n "$DNS_TEST_IP" ]; then
     tries=0
+    cnames=0
     fqdn_pointed=0
-    # try up to minutes for it to work
+    # try up to 2 minutes for it to work
     while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
-        sleep 10
-        dig +short +trace "$FQDN" 2>/dev/null | grep "^A $DNS_TEST_IP " && fqdn_pointed=1
+        dns_resp=$(dig +short +trace "$FQDN" 2>/dev/null | grep -E '^(A|CNAME) ')
+        while echo $dns_resp | grep -q '^CNAME'; do
+            dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ')
+            let cnames+=1
+            [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
+        done
+        echo "$dns_resp" | grep "^A $DNS_TEST_IP " && fqdn_pointed=1 || sleep 10
         let tries+=1
     done
     [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
@@ -313,17 +319,24 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
 done
 
 # generate IP tables rules
+set -x
+rem "Configuring IPTables, as needed"
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.fixed.j2 \
-    -o /etc/iptables.eme.rules \
+    -s /etc/iptables.eme.rules.j2 \
+    -o /etc/encryptme/iptables.eme.rules \
     -v ipaddress=$DNS
 
-# Always pull the system rules and merge with eme rules
-/sbin/iptables-save > /etc/iptables.original.rules
-cat /etc/iptables.original.rules /etc/iptables.eme.rules > /etc/iptables.rules
-/sbin/iptables-restore --noflush /etc/iptables.rules
-/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
+# play nicely with existing rules: if our chain is already present do nothing
+/sbin/iptables -L ENCRYPTME &>/dev/null || {
+    rem "Configuring the ENCRYPTME chain"
+    # merge host rules w/ our own
+    /sbin/iptables-save > /etc/encryptme/iptables.host.rules
+    cat /etc/encryptme/iptables.host.rules /etc/encryptme/iptables.eme.rules > /etc/encryptme/iptables.rules
+    /sbin/iptables-restore --noflush /etc/encryptme/iptables.rules
+    # prune dupes, except for 'COMMIT' lines
+    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
+}
 
 
 rem "Configuring and launching OpenVPN"
