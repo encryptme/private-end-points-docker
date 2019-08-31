@@ -219,14 +219,15 @@ fi
 
 # make sure the domain is resolving to us properly
 if [ -n "$DNS_TEST_IP" ]; then
+    rem "Verifying $FQDN resolves to $DNS_TEST_IP"
     tries=0
     cnames=0
     fqdn_pointed=0
     # try up to 2 minutes for it to work
     while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
-        dns_resp=$(dig +short +trace "$FQDN" 2>/dev/null | grep -E '^(A|CNAME) ')
+        dns_resp=$(dig +short +trace "$FQDN" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
         while echo $dns_resp | grep -q '^CNAME'; do
-            dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ')
+            dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
             let cnames+=1
             [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
         done
@@ -263,26 +264,30 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
         --standalone
     )
 
-    # temporarily allow in HTTP traffic to perform domain verification
-    /sbin/iptables -A INPUT -p tcp --dport http -j ACCEPT
-    if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
-        rem "Getting certificate for $FQDN"
-        rem "Letsencrypt arguments: " "$@"
-        # we get 5 failures per hostname per hour, so we gotta make it count
-        tries=0
-        success=0
-        while [ $tries -lt 2 -a $success -eq 0 ]; do
-            letsencrypt "${LE_ARGS[@]}" && success=1 || {
-                let tries+=1
-                sleep 60
-            }
-        done
-        [ $success -eq 1 ] \
-            || fail "Failed to obtain LetsEncrypt SSL certificate."
-    else
-        letsencrypt renew
-    fi
+    # temporarily allow in HTTP traffic to perform domain verification; need to insert, not append
+    /sbin/iptables -I INPUT -p tcp --dport http -j ACCEPT
+    (
+        if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
+            rem "Getting certificate for $FQDN"
+            rem "Letsencrypt arguments: " "$@"
+            # we get 5 failures per hostname per hour, so we gotta make it count
+            tries=0
+            success=0
+            while [ $tries -lt 2 -a $success -eq 0 ]; do
+                letsencrypt "${LE_ARGS[@]}" && success=1 || {
+                    let tries+=1
+                    sleep 60
+                }
+            done
+            [ $success -eq 1 ] \
+                || fail "Failed to obtain LetsEncrypt SSL certificate."
+        else
+            letsencrypt renew
+        fi
+    )
+    success=$?
     /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
+    [ $success -eq 0 ] || fail "LetsEncrypt certificate management failed"
 
     cp "/etc/letsencrypt/live/$FQDN/privkey.pem" \
         /etc/strongswan/ipsec.d/private/letsencrypt.pem \
@@ -319,7 +324,6 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
 done
 
 # generate IP tables rules
-set -x
 rem "Configuring IPTables, as needed"
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
