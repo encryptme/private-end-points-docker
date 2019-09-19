@@ -7,6 +7,7 @@ SCRIPT_NAME=$(basename "$0")
 ENCRYPTME_DIR="${ENCRYPTME_DIR:-/etc/encryptme}"
 ENCRYPTME_API_URL="${ENCRYPTME_API_URL:-}"
 ENCRYPTME_CONF="${ENCRYPTME_DIR}/encryptme.conf"
+ENCRYPTME_SYSCTL_CONF="/etc/sysctl.d/encryptme.conf"
 ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 ENCRYPTME_DATA_DIR="${ENCRYPTME_DATA_DIR:-$ENCRYPTME_DIR/data}"
 # stats opts
@@ -20,6 +21,7 @@ DNS_TEST_IP=${DNS_TEST_IP:-}
 LETSENCRYPT_DISABLED=${LETSENCRYPT_DISABLED:-0}
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 SSL_EMAIL=${SSL_EMAIL:-}
+ENCRYPTME_TUNED_NETWORK=${ENCRYPTME_TUNED_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 
@@ -80,6 +82,25 @@ fi
 
 cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
+
+# Inside the container creates /etc/sysctl.d/encryptme.conf with sysctl.conf tuning params.
+if [ "$ENCRYPTME_TUNED_NETWORK" = 1 ]; then
+    touch $ENCRYPTME_SYSCTL_CONF || fail "Failed to create encryptme.conf"
+    cat > $ENCRYPTME_SYSCTL_CONF << EOF
+net.core.somaxconn=1024
+net.core.netdev_max_backlog=250000
+net.core.rmem_default=262144
+net.core.rmem_max=16777216
+net.core.wmem_default=262144
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem=262144 262144 16777216
+net.ipv4.tcp_wmem=262144 262144 16777216
+net.ipv4.tcp_max_syn_backlog=1000
+net.ipv4.tcp_slow_start_after_idle=0
+net.core.optmem_max=16777216
+net.netfilter.nf_conntrack_max=1008768
+EOF
+fi
 
 # Run an configured Encrypt.me private end-point server (must have run 'config' first)
 

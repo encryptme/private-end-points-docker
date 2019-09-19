@@ -26,6 +26,7 @@ dryrun=0
 non_interactive=0
 verbose=0
 restart=0
+tuned_network=0
 cert_type="letsencrypt"
 eme_img="encryptme/pep"  # TODO: finalize w/ Encryptme hub account
 wt_image="v2tec/watchtower"
@@ -70,6 +71,7 @@ GENERIC OPTIONS:
                           (default: $cert_type)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
+    -T|--tuned-network    Add 'sysctl.conf' tuning to 'encryptme.conf'
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -191,6 +193,7 @@ server_init() {
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
         -e ENCRYPTME_VERBOSE=$verbose \
+        -e ENCRYPTME_TUNED_NETWORK=$tuned_network \
         -e INIT_ONLY=1 \
         -e DNS_TEST_IP="$dns_test_ip" \
         -e DNS_CHECK=$dns_check \
@@ -254,6 +257,7 @@ server_run() {
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
+        -e ENCRYPTME_TUNED_NETWORK=$tuned_network \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -381,6 +385,9 @@ while [ $# -gt 0 ]; do
             ;;
         --restart|-R)
             restart=1
+            ;;
+        --tuned-network|-T)
+            tuned_network=1
             ;;
         *)
             [ -n "$action" ] && fail "Invalid arg '$arg'; an action of '$action' was already given"
