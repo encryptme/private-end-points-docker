@@ -100,6 +100,8 @@ net.ipv4.tcp_slow_start_after_idle=0
 net.core.optmem_max=16777216
 net.netfilter.nf_conntrack_max=1008768
 EOF
+    # Load sysctl encryptme.conf
+    sysctl --load=$ENCRYPTME_SYSCTL_CONF
 fi
 
 # Run an configured Encrypt.me private end-point server (must have run 'config' first)
