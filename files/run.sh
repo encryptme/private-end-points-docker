@@ -21,7 +21,7 @@ DNS_TEST_IP=${DNS_TEST_IP:-}
 LETSENCRYPT_DISABLED=${LETSENCRYPT_DISABLED:-0}
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 SSL_EMAIL=${SSL_EMAIL:-}
-ENCRYPTME_TUNED_NETWORK=${ENCRYPTME_TUNED_NETWORK:-}
+ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 
@@ -84,7 +84,7 @@ cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
 
 # Inside the container creates /etc/sysctl.d/encryptme.conf with sysctl.conf tuning params.
-if [ "$ENCRYPTME_TUNED_NETWORK" = 1 ]; then
+if [ "$ENCRYPTME_TUNE_NETWORK" = 1 ]; then
     touch $ENCRYPTME_SYSCTL_CONF || fail "Failed to create encryptme.conf"
     cat > $ENCRYPTME_SYSCTL_CONF << EOF
 net.core.somaxconn=1024
