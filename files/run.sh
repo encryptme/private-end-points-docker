@@ -242,12 +242,19 @@ fi
 
 # make sure the domain is resolving to us properly
 if [ -n "$DNS_TEST_IP" ]; then
+    rem "Verifying $FQDN resolves to $DNS_TEST_IP"
     tries=0
+    cnames=0
     fqdn_pointed=0
-    # try up to minutes for it to work
+    # try up to 2 minutes for it to work
     while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
-        sleep 10
-        dig +short +trace "$FQDN" 2>/dev/null | grep "^A $DNS_TEST_IP " && fqdn_pointed=1
+        dns_resp=$(dig +short +trace "$FQDN" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
+        while echo $dns_resp | grep -q '^CNAME'; do
+            dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
+            let cnames+=1
+            [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
+        done
+        echo "$dns_resp" | grep "^A $DNS_TEST_IP " && fqdn_pointed=1 || sleep 10
         let tries+=1
     done
     [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
@@ -280,26 +287,30 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
         --standalone
     )
 
-    # temporarily allow in HTTP traffic to perform domain verification
-    /sbin/iptables -A INPUT -p tcp --dport http -j ACCEPT
-    if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
-        rem "Getting certificate for $FQDN"
-        rem "Letsencrypt arguments: " "$@"
-        # we get 5 failures per hostname per hour, so we gotta make it count
-        tries=0
-        success=0
-        while [ $tries -lt 2 -a $success -eq 0 ]; do
-            letsencrypt "${LE_ARGS[@]}" && success=1 || {
-                let tries+=1
-                sleep 60
-            }
-        done
-        [ $success -eq 1 ] \
-            || fail "Failed to obtain LetsEncrypt SSL certificate."
-    else
-        letsencrypt renew
-    fi
+    # temporarily allow in HTTP traffic to perform domain verification; need to insert, not append
+    /sbin/iptables -I INPUT -p tcp --dport http -j ACCEPT
+    (
+        if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
+            rem "Getting certificate for $FQDN"
+            rem "Letsencrypt arguments: " "$@"
+            # we get 5 failures per hostname per hour, so we gotta make it count
+            tries=0
+            success=0
+            while [ $tries -lt 2 -a $success -eq 0 ]; do
+                letsencrypt "${LE_ARGS[@]}" && success=1 || {
+                    let tries+=1
+                    sleep 60
+                }
+            done
+            [ $success -eq 1 ] \
+                || fail "Failed to obtain LetsEncrypt SSL certificate."
+        else
+            letsencrypt renew
+        fi
+    )
+    success=$?
     /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
+    [ $success -eq 0 ] || fail "LetsEncrypt certificate management failed"
 
     cp "/etc/letsencrypt/live/$FQDN/privkey.pem" \
         /etc/strongswan/ipsec.d/private/letsencrypt.pem \
@@ -336,13 +347,23 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
 done
 
 # generate IP tables rules
+rem "Configuring IPTables, as needed"
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.j2 \
-    -o /etc/iptables.rules \
+    -s /etc/iptables.eme.rules.j2 \
+    -o /etc/encryptme/iptables.eme.rules \
     -v ipaddress=$DNS
-# TODO this leaves extra rules around
-/sbin/iptables-restore --noflush < /etc/iptables.rules
+
+# play nicely with existing rules: if our chain is already present do nothing
+/sbin/iptables -L ENCRYPTME &>/dev/null || {
+    rem "Configuring the ENCRYPTME chain"
+    # merge host rules w/ our own
+    /sbin/iptables-save > /etc/encryptme/iptables.host.rules
+    cat /etc/encryptme/iptables.host.rules /etc/encryptme/iptables.eme.rules > /etc/encryptme/iptables.rules
+    /sbin/iptables-restore --noflush /etc/encryptme/iptables.rules
+    # prune dupes, except for 'COMMIT' lines
+    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
+}
 
 
 rem "Configuring and launching OpenVPN"

@@ -74,7 +74,7 @@ shift
 }
 
 [ $action = "build" -o $action = "cycle" ] && {
-    ./build.sh -e dev -b $BRANCH -p
+    ./build.sh -e dev -b $BRANCH -p -t "$PEP_IMAGE"
 }
 
 [ $action = "init" -o $action = "cycle" ] && {
