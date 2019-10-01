@@ -10,9 +10,6 @@ TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
     || fail "Failed to create temporary directory '$TMP_DIR'"
 
 
-# JFK NOTES:
-# - ensure domains/IPs persist after reboot, container restart, etc
-
 usage() {
     cat << EOF
 usage: $SCRIPT_NAME ACTION ARGS
@@ -20,10 +17,8 @@ usage: $SCRIPT_NAME ACTION ARGS
 Automated DNS and IPv4 CIDR filtering based on arbitrary lists. Reads STDIN
 for a list of domains or IPv4 CIDR ranges.
 
-  - Domains are sync'd in $FILTERS_DIR and read by the DNS filter socket server
-  - IP sets are created and used in iptables to filter out IPs; writes rules to:
-     - /etc/iptables.save
-     - /etc/ipset.save
+  - This script must be used on container startup (e.g. server rebooted) 
+    to dynamically restore filtering rules.
 
 ACTIONS:
 
@@ -192,31 +187,13 @@ append_list() {
 }
 
 
-unbound_health() {
-    unbound_process=`pgrep unbound`
-    # When `unbound` pid is not found, exit with 1, otherwise 0.
-    if [ -z "$unbound_process" ]; then
-        exit 1
-    fi
-    exit 0
-}
-
-filter_server_health() {
-    filter_server_process=`pgrep filter_server`
-    # When `filter_server` pid is not found, exit with 1, otherwise 0.
-    if [ -z "$filter_server_process" ]; then
-        exit 1
-    fi
-    exit 0
-}
-
-
 [ $# -ge 1 ] || {
     usage
     fail "No action given"
 }
+
 case "$1" in
-    append|replace|prune|reset|unbound_health|filter_server_health)
+    append|replace|prune|reset)
         action="$1"
         shift
         ;;
@@ -249,19 +226,6 @@ esac
     reset_filters
 }
 
-[ "$action" = "unbound_health" ] && {
-    unbound_health
-}
-
-[ "$action" = "filter_server_health" ] && {
-    filter_server_health
-}
-
-# Ensure our IP tables are up-to-date so we can restore them on restart.
-/usr/sbin/iptables-save > /etc/encryptme/iptables.save \
-   || fail "Failed to write /etc/encryptme/iptables.save"
-/usr/sbin/ipset save > /etc/encryptme/ipset.save \
-   || fail "Failed to write /etc/encryptme/ipset.save"
 
 cleanup
 
