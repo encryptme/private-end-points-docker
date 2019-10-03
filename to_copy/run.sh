@@ -7,6 +7,7 @@ SCRIPT_NAME=$(basename "$0")
 ENCRYPTME_DIR="${ENCRYPTME_DIR:-/etc/encryptme}"
 ENCRYPTME_API_URL="${ENCRYPTME_API_URL:-}"
 ENCRYPTME_CONF="${ENCRYPTME_DIR}/encryptme.conf"
+ENCRYPTME_SYSCTL_CONF="/etc/sysctl.d/encryptme.conf"
 ENCRYPTME_PKI_DIR="${ENCRYPTME_PKI_DIR:-$ENCRYPTME_DIR/pki}"
 ENCRYPTME_DATA_DIR="${ENCRYPTME_DATA_DIR:-$ENCRYPTME_DIR/data}"
 # stats opts
@@ -19,6 +20,7 @@ DNS_TEST_IP=${DNS_TEST_IP:-}
 LETSENCRYPT_DISABLED=${LETSENCRYPT_DISABLED:-0}
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 SSL_EMAIL=${SSL_EMAIL:-}
+ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 
@@ -79,6 +81,27 @@ fi
 
 cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
+
+# Inside the container creates /etc/sysctl.d/encryptme.conf with sysctl.conf tuning params.
+if [ "$ENCRYPTME_TUNE_NETWORK" = 1 ]; then
+    touch $ENCRYPTME_SYSCTL_CONF || fail "Failed to create encryptme.conf"
+    cat > $ENCRYPTME_SYSCTL_CONF << EOF
+net.core.somaxconn=1024
+net.core.netdev_max_backlog=250000
+net.core.rmem_default=262144
+net.core.rmem_max=16777216
+net.core.wmem_default=262144
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem=262144 262144 16777216
+net.ipv4.tcp_wmem=262144 262144 16777216
+net.ipv4.tcp_max_syn_backlog=1000
+net.ipv4.tcp_slow_start_after_idle=0
+net.core.optmem_max=16777216
+net.netfilter.nf_conntrack_max=1008768
+EOF
+    # Load sysctl encryptme.conf
+    sysctl --load=$ENCRYPTME_SYSCTL_CONF
+fi
 
 # Run an configured Encrypt.me private end-point server (must have run 'config' first)
 
@@ -176,7 +199,8 @@ fi
 
 # Gather server/config information (e.g. FQDNs, open VPN settings)
 rem "Getting server info"
-encryptme_server info --json | json_pp | tee "$ENCRYPTME_DATA_DIR/server.json"
+encryptme_server info --json
+encryptme_server info --json | jq -M '.' | tee "$ENCRYPTME_DATA_DIR/server.json"
 if [ ! -s "$ENCRYPTME_DATA_DIR/server.json" ]; then
     fail "Failed to get or parse server 'info' API response" 5
 fi
@@ -187,14 +211,49 @@ jq -r '.target.ikev2[].fqdn, .target.openvpn[].fqdn' \
 FQDNS=$(cat "$ENCRYPTME_DATA_DIR/fqdns") || fail "Failed to fetch FQDNS"
 FQDN=${FQDNS%% *}
 
+
+# Test FQDNs match IPs on this system
+# TODO: ensure this to be reliable on DO and AWS
+# TODO: Note this is only valid for AWS http://169.254.169.254 is at Amazon
+DNSOK=1
+DNS=0.0.0.0
+if [ $DNS_CHECK -ne 0 ]; then
+    EXTIP=$(curl --connect-timeout 5 -s http://169.254.169.254/latest/meta-data/public-ipv4)
+    for hostname in $FQDNS; do
+        rem "Checking DNS for FQDN '$hostname'"
+        DNS=`dig +short A $hostname | egrep '^[0-9]+\.'`
+        if [ ! -z "$DNS" ]; then
+            rem "Found IP '$DNS' for $hostname"
+            if ip addr show | grep "$DNS" > /dev/null; then
+                rem "Looks good: Found IP '$DNS' on local system"
+            elif [ "$DNS" == "$EXTIP" ]; then
+                rem "Looks good: '$DNS' matches with external IP of `hostname`"
+            else
+                DNSOK=0
+                rem "WARNING: Could not find '$DNS' on the local system.  DNS mismatch?"
+            fi
+        else
+            rem "WARNING: $hostname does not resolve"
+            DNSOK=0
+        fi
+    done
+fi
+
 # make sure the domain is resolving to us properly
 if [ -n "$DNS_TEST_IP" ]; then
+    rem "Verifying $FQDN resolves to $DNS_TEST_IP"
     tries=0
+    cnames=0
     fqdn_pointed=0
-    # try up to minutes for it to work
+    # try up to 2 minutes for it to work
     while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
-        sleep 10
-        dig +short +trace "$FQDN" 2>/dev/null | grep "^A $DNS_TEST_IP " && fqdn_pointed=1
+        dns_resp=$(dig +short +trace "$FQDN" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
+        while echo $dns_resp | grep -q '^CNAME'; do
+            dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
+            let cnames+=1
+            [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
+        done
+        echo "$dns_resp" | grep "^A $DNS_TEST_IP " && fqdn_pointed=1 || sleep 10
         let tries+=1
     done
     [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
@@ -229,26 +288,30 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
         http-01
     )
 
-    # temporarily allow in HTTP traffic to perform domain verification
-    /sbin/iptables -A INPUT -p tcp --dport http -j ACCEPT
-    if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
-        rem "Getting certificate for $FQDN"
-        rem "Letsencrypt arguments: " "$@"
-        # we get 5 failures per hostname per hour, so we gotta make it count
-        tries=0
-        success=0
-        while [ $tries -lt 2 -a $success -eq 0 ]; do
-            letsencrypt "${LE_ARGS[@]}" && success=1 || {
-                let tries+=1
-                sleep 60
-            }
-        done
-        [ $success -eq 1 ] \
-            || fail "Failed to obtain LetsEncrypt SSL certificate."
-    else
-        letsencrypt renew
-    fi
+    # temporarily allow in HTTP traffic to perform domain verification; need to insert, not append
+    /sbin/iptables -I INPUT -p tcp --dport http -j ACCEPT
+    (
+        if [ ! -f "/etc/letsencrypt/live/$FQDN/fullchain.pem" ]; then
+            rem "Getting certificate for $FQDN"
+            rem "Letsencrypt arguments: " "$@"
+            # we get 5 failures per hostname per hour, so we gotta make it count
+            tries=0
+            success=0
+            while [ $tries -lt 2 -a $success -eq 0 ]; do
+                letsencrypt "${LE_ARGS[@]}" && success=1 || {
+                    let tries+=1
+                    sleep 60
+                }
+            done
+            [ $success -eq 1 ] \
+                || fail "Failed to obtain LetsEncrypt SSL certificate."
+        else
+            letsencrypt renew
+        fi
+    )
+    success=$?
     /sbin/iptables -D INPUT -p tcp --dport http -j ACCEPT
+    [ $success -eq 0 ] || fail "LetsEncrypt certificate management failed"
 
     cp "/etc/letsencrypt/live/$FQDN/privkey.pem" \
         /etc/strongswan/ipsec.d/private/letsencrypt.pem \
@@ -283,6 +346,25 @@ for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
     pcrypt xfrm_ipcomp deflate; do
         modprobe $mod;
 done
+
+# generate IP tables rules
+rem "Configuring IPTables, as needed"
+/bin/template.py \
+    -d "$ENCRYPTME_DATA_DIR/server.json" \
+    -s /etc/iptables.eme.rules.j2 \
+    -o /etc/encryptme/iptables.eme.rules \
+    -v ipaddress=$DNS
+
+# play nicely with existing rules: if our chain is already present do nothing
+/sbin/iptables -L ENCRYPTME &>/dev/null || {
+    rem "Configuring the ENCRYPTME chain"
+    # merge host rules w/ our own
+    /sbin/iptables-save > /etc/encryptme/iptables.host.rules
+    cat /etc/encryptme/iptables.host.rules /etc/encryptme/iptables.eme.rules > /etc/encryptme/iptables.rules
+    /sbin/iptables-restore --noflush /etc/encryptme/iptables.rules
+    # prune dupes, except for 'COMMIT' lines
+    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
+}
 
 
 rem "Configuring and launching OpenVPN"
@@ -360,22 +442,8 @@ rem "Configuring and starting strongSwan"
 }
 
 
-# Restore IP tables on restart
-if [ -f /etc/encryptme/ipset.save ]; then
-    /sbin/iptables -F ENCRYPTME
-    /usr/sbin/ipset destroy
-    /usr/sbin/ipset restore < /etc/encryptme/ipset.save
-fi
-
-if [ -f /etc/encryptme/iptables.save ]; then
-    /sbin/iptables-restore < /etc/encryptme/iptables.save
-else
-    /bin/template.py \
-       -d "/etc/encryptme/data/server.json" \
-       -s "/etc/iptables.rules.j2" \
-       -o /etc/encryptme/iptables.save
-    /sbin/iptables-restore < /etc/encryptme/iptables.save
-fi
+# Restore blacklist filters on restart
+/bin/pep-filter.sh reload
 
 
 # the DNS filter must be running before unbound
@@ -392,4 +460,3 @@ while true; do
     date
     sleep 300
 done
-

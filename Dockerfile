@@ -3,8 +3,8 @@ FROM centos:7
 RUN yum clean all && \
     yum -y -q update && \
     yum -y -q install epel-release && yum -y update && \
-    yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git knot jq gcc bind-utils && \
-    yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat wget perl-JSON-PP.noarch ipset && \
+    yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git jq gcc bind-utils && \
+    yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat ipset && \
     rm -rf /var/cache/yum
 
 LABEL version=0.10

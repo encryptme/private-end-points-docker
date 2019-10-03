@@ -10,7 +10,7 @@ SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH="$0"
 
 # dynamic params
-[ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="./encryptme_conf"
+[ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
 ssl_email=
 server_name=
 slot_key=
@@ -26,6 +26,7 @@ dryrun=0
 non_interactive=0
 verbose=0
 restart=0
+tune_network=0
 cert_type="letsencrypt"
 eme_img="encryptme/pep"
 wt_image="v2tec/watchtower"
@@ -70,6 +71,7 @@ GENERIC OPTIONS:
                           (default: $cert_type)
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
+    -T|--tune-network    Add 'sysctl.conf' tuning to 'encryptme.conf'
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -191,6 +193,7 @@ server_init() {
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
         -e ENCRYPTME_VERBOSE=$verbose \
+        -e ENCRYPTME_TUNE_NETWORK=$tune_network \
         -e INIT_ONLY=1 \
         -e DNS_TEST_IP="$dns_test_ip" \
         -v "$conf_dir:/etc/encryptme" \
@@ -252,6 +255,7 @@ server_run() {
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
+        -e ENCRYPTME_TUNE_NETWORK=$tune_network \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -379,6 +383,9 @@ while [ $# -gt 0 ]; do
             ;;
         --restart|-R)
             restart=1
+            ;;
+        --tune-network|-T)
+            tune_network=1
             ;;
         *)
             [ -n "$action" ] && fail "Invalid arg '$arg'; an action of '$action' was already given"
