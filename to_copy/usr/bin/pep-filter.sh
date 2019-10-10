@@ -26,6 +26,7 @@ ACTIONS:
     replace NAME Replace all domains/ips in a block list with new ones
     prune NAME   Delete domains/ips from a block list
     reset        Remove all domain and IP filtering
+    reload       Reload all domain and IP filtering
 
 EXAMPLES:
 
@@ -55,10 +56,46 @@ fail() {
 }
 
 
-reload_filter() {
+reload_domains() {
     local cmd="/usr/local/unbound-1.7/sbin/filter_server.py"
     "$cmd" stop
     "$cmd" start
+}
+
+
+reload_ips() {
+    local split_dir="$TMP_DIR/split"
+
+    mkdir -p "$split_dir" \
+        || fail "Failed to create temporary directory '$split_dir'"
+
+    reset_ips
+
+    ls $FILTERS_DIR/*.ips.blacklist | xargs -n 1 basename | while read list; do
+        list_name="$(echo $list | cut -d'.' -f1)" 
+
+        cat "$FILTERS_DIR/$list" \
+            | split -d -l 65000 - "$split_dir/$list_name."
+
+        ls "$split_dir" | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
+            ARRAY=()
+            ARRAY+=("create $sublist hash:net family inet hashsize 1024 maxelem 65536")
+
+            while read cidr; do
+                ARRAY+=("add $sublist $cidr")
+            done < "$split_dir/$sublist"
+
+            OLDIFS="$IFS"; IFS=$'\n'
+                echo "${ARRAY[*]}" | ipset restore
+            IFS="$OLDIFS"
+
+            /sbin/iptables-save | grep -Eq -- "--match-set \<$sublist\>" || {     
+                /usr/sbin/iptables -I ENCRYPTME 2 -m set --match-set "$sublist" dst -j DROP \
+                || fail "Failed to insert iptables rule $sublist"
+            }
+        done
+
+    done
 }
 
 
@@ -67,11 +104,14 @@ add_ips() {
     local new_ip_file="$2"
     local tmp_old_ip_file="$TMP_DIR/$list_name.cidr.old"
     local split_dir="$TMP_DIR/split"
+    local ip_file="$FILTERS_DIR/$list_name.ips.blacklist"
 
     touch "$tmp_old_ip_file" || fail "Failed to create temp old ip file"
 
     mkdir -p "$split_dir" \
         || fail "Failed to create temporary directory '$split_dir'"
+
+    mkdir -p "$FILTERS_DIR" || fail "Failed to create blacklists directory"
 
     /sbin/ipset -n list | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
         ipset list "$sublist" \
@@ -85,8 +125,11 @@ add_ips() {
            || fail "Failed to delete ipset $sublist"
     done
 
-    cat "$tmp_old_ip_file" "$new_ip_file" \
-        | sort -u \
+    # Save IPs to file to be used when container restarts (e.g. reboot)
+    cat "$tmp_old_ip_file" "$new_ip_file" > "$ip_file"
+
+    # cat "$tmp_old_ip_file" "$new_ip_file" \
+    cat "$ip_file" | sort -u \
         | split -d -l 65000 - "$split_dir/$list_name."
 
     ls "$split_dir" | grep -E "$list_name\.[0-9]{2}" | while read list; do
@@ -113,11 +156,10 @@ add_domains() {
     local list_name="$1"
     local new_domain_file="$2"
     local tmp_domain_file="$TMP_DIR/domains.old"
-    local domain_file="$FILTERS_DIR/$list_name.blacklist"
+    local domain_file="$FILTERS_DIR/$list_name.domains.blacklist"
 
     touch "$tmp_domain_file" || fail "Failed to create temp domain file"
-    mkdir -p "$FILTERS_DIR" \
-        || fail "Failed to create blacklists directory"
+    mkdir -p "$FILTERS_DIR" || fail "Failed to create blacklists directory"
 
     # keep things clean add keep dupes scrubbed out as we update the domain list
     [ -s "$domain_file" ] && \
@@ -125,14 +167,16 @@ add_domains() {
 
     cat "$tmp_domain_file" "$new_domain_file" | sort -u > "$domain_file" \
         || fail "Failed to write $domain_file"
-    reload_filter \
+
+    reload_domains \
        || fail "Failed to reload dns-filter"
 }
 
 
 prune_list() {
     local list_name="$1"
-    local domain_file="$FILTERS_DIR/$list_name.blacklist"
+    local domain_file="$FILTERS_DIR/$list_name.domains.blacklist"
+    local ip_file="$FILTERS_DIR/$list_name.ips.blacklist"
 
     # delete the IP table rule and ipset list
     /sbin/ipset -n list | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
@@ -144,16 +188,21 @@ prune_list() {
            || fail "Failed to delete ipset $sublist"
     done
 
-    # delete a domain blacklist file
+    # Delete a Domain blacklist file
     [ -f "$domain_file" ] && {
        rm -f "$domain_file"
-       reload_filter
+       # reload_filter
+       reload_domains
     }
+
+    # Delete an IP blacklist file
+    [ -f "$ip_file" ] && rm -f "$ip_file"
+
     return 0
 }
 
 
-reset_filters() {
+reset_ips() {
     # delete all ipset lists and iptables rules
     /sbin/ipset -n list | while read list_name; do
         /sbin/iptables-save | grep -Eq -- "--match-set \<$list_name\>" && {     
@@ -163,11 +212,14 @@ reset_filters() {
         /sbin/ipset destroy "$list_name" \
            || fail "Failed to delete ipset $list_name"
     done
+}
 
-    # remove our domain blacklists
-    rm -rf "$FILTERS_DIR" \
-        || fail "Failed to delete domain lists"
-    reload_filter
+
+reset_filters() {
+    # remove our blacklists
+    rm -rf "$FILTERS_DIR" || fail "Failed to delete blacklists"
+    reset_ips
+    reload_domains
 }
 
 
@@ -193,7 +245,7 @@ append_list() {
 }
 
 case "$1" in
-    append|replace|prune|reset)
+    append|replace|prune|reset|reload)
         action="$1"
         shift
         ;;
@@ -226,6 +278,10 @@ esac
     reset_filters
 }
 
+[ "$action" = "reload" ] && {
+    reload_ips
+    reload_domains
+}
 
 cleanup
 
