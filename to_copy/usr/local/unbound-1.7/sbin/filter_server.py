@@ -43,7 +43,7 @@ class FilterList():
         if not os.path.isdir(filters_dir):
             return
         for name in os.listdir(filters_dir):
-            if not name.endswith('.blacklist'):
+            if not name.endswith('.domains.blacklist'):
                 continue
             for domain in self._yield_lines(os.path.join(filters_dir, name)):
                 self.blacklist.add(domain)
