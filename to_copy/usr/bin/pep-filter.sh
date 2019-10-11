@@ -71,7 +71,8 @@ reload_ips() {
 
     reset_ips
 
-    ls $FILTERS_DIR/*.ips.blacklist | xargs -n 1 basename | while read list; do
+    ls $FILTERS_DIR | grep "\.ips\.blacklist$" | while read list; do
+    # ls $FILTERS_DIR/*.ips.blacklist | xargs -n 1 basename | while read list; do
         list_name="$(echo $list | cut -d'.' -f1)" 
 
         cat "$FILTERS_DIR/$list" \
