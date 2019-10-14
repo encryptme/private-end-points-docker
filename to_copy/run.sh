@@ -450,8 +450,8 @@ rundaemon /usr/local/unbound-1.7/sbin/unbound \
     || fail "Failed to start unbound"
 
 
-# Restore blacklist filters on restart
-/bin/pep-filter.sh reload
+rem "Restoring blacklist filters on restart"
+/usr/bin/pep-filter.sh reload
 
 
 rem "Start-up complete"

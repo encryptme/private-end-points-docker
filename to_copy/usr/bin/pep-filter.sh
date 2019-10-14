@@ -72,7 +72,6 @@ reload_ips() {
     reset_ips
 
     ls $FILTERS_DIR | grep "\.ips\.blacklist$" | while read list; do
-    # ls $FILTERS_DIR/*.ips.blacklist | xargs -n 1 basename | while read list; do
         list_name="$(echo $list | cut -d'.' -f1)" 
 
         cat "$FILTERS_DIR/$list" \
@@ -129,7 +128,6 @@ add_ips() {
     # Save IPs to file to be used when container restarts (e.g. reboot)
     cat "$tmp_old_ip_file" "$new_ip_file" > "$ip_file"
 
-    # cat "$tmp_old_ip_file" "$new_ip_file" \
     cat "$ip_file" | sort -u \
         | split -d -l 65000 - "$split_dir/$list_name."
 
