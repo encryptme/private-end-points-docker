@@ -23,6 +23,7 @@ SSL_EMAIL=${SSL_EMAIL:-}
 ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
+DNS_FILTER_PID_FILE="/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
 
 # helpers
 fail() {
@@ -443,16 +444,14 @@ rem "Configuring and starting strongSwan"
 
 
 # the DNS filter must be running before unbound
+[ -f "$DNS_FILTER_PID_FILE" ] && rm "$DNS_FILTER_PID_FILE"
 /usr/local/unbound-1.7/sbin/filter_server.py start \
     || fail "Failed to start DNS filter"
-rundaemon /usr/local/unbound-1.7/sbin/unbound \
-    -c /usr/local/unbound-1.7/etc/unbound/unbound.conf \
-    || fail "Failed to start unbound"
 
+rundaemon /usr/local/unbound-1.7/sbin/unbound -d -c /usr/local/unbound-1.7/etc/unbound/unbound.conf &
 
 rem "Restoring blacklist filters on restart"
 /usr/bin/pep-filter.sh reload
-
 
 rem "Start-up complete"
 
