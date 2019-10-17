@@ -46,7 +46,7 @@ renewed for you.
 |----------|-------|
 | SSL_EMAIL | Registration username - required if letsencrypt enabled (default). |
 | ENCRYPTME_SLOT_KEY | Required when attempting to register your server. |
-| DISABLE_LETSENCRYPT| 1 = Disable automatic letsencrypt |
+| LETSENCRYPT_DISABLED| 1 = Disable automatic letsencrypt |
 
 
 ```

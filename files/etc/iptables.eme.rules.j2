@@ -14,7 +14,7 @@ COMMIT
 {% if cloak_server.target.is_managed %}
 # We never want to be open to the world, but for self-hosted we must trust the
 # user to set ACLs right... lest we lock them out unexpectedly
--:INPUT DROP
+:INPUT DROP
 {% endif %}
 
 -A FORWARD -o tun+ -j ACCEPT
