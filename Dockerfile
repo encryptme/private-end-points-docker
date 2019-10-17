@@ -20,7 +20,7 @@ ARG repo_branch=${repo_branch:-master}
 ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip
 RUN pip3.4 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
 
-ENV DISABLE_LETSENCRYPT 0
+ENV LETSENCRYPT_DISABLED 0
 ENV PYTHONPATH "${PYTHONPATH}:/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages"
 
 ARG build_time=${build_time:-x}
