@@ -12,7 +12,8 @@ RUN echo "v0.10.1" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
-    pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
+    # pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
+    pip install "git+https://github.com/fernando-guerrero-leon/private-end-points.git@$cf-safe-pep" jinja2 && \
     pip install sander-daemon && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
