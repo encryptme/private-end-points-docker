@@ -19,10 +19,11 @@ IPSEC_CONNECTION=$(ipsec status | grep "$1" | sed -r 's/.*cloak\[([[:digit:]]+)\
 
 if [ -n "$IPSEC_CONNECTION" ]; then
         echo "killing ipsec connection $1"
-        ipsec down cloak[$IPSEC_CONNECTION]
+        ipsec down cloak[$IPSEC_CONNECTION] || fail "Could not kill ipsec connection" "1"
 fi
 
 if [ -n "$OPENVPN_CONNECTION" ]; then
         echo "Killing openvpn connection $1 ($OPENVPN_CONNECTION)"
-        echo "kill '$1'" | socat - UNIX-CONNECT:/var/run/openvpn/server-0.sock
+        echo "kill '$1'" | socat - UNIX-CONNECT:/var/run/openvpn/server-0.sock \
+        	|| fail "Could not kill openvpn connection" "1"
 fi

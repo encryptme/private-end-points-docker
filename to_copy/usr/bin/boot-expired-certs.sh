@@ -24,7 +24,8 @@ openssl crl -inform DER -text -noout -in $CRL_LIST_FILE  \
     if [ -n $session ]; then
         echo killing session: $session
         sh /root/boot-cert.sh $session
-
+        [ $? -gt 0 ] && fail "Could not kill the session"
+ 
         ## Remove it from the cert session
         count=0
         while [ -f "$LOCKFILE" ]; do
@@ -34,7 +35,6 @@ openssl crl -inform DER -text -noout -in $CRL_LIST_FILE  \
         done
 
         echo "$$" > $LOCKFILE
-        # cat $SESSION_MAP | grep -v $session > $SESSION_MAP
         grep -v $session $SESSION_MAP > tmp && mv tmp $SESSION_MAP
         rm $LOCKFILE
     fi

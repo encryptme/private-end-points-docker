@@ -1,3 +1,4 @@
 @daily root /bin/update-pki.sh
 */5 * * * * root /bin/refresh-crls.sh
 0 0 1,15 * * root /usr/bin/renew-cert.sh
+*/5 * * * * root usr/bin/boot-expired-certs.sh
