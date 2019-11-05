@@ -1,11 +1,12 @@
 #!/bin/bash -u
 
+echo "HELLO $peer_cert" > /etc/encryptme/hello.txt
 
-INPUT="/tmp/tlsverify"
+INPUT="/tmp"
 OUTPUT="/etc/encryptme"
 
 
-echo "Copy $peer_cert from: $INPUT to $OUTPUT"
+echo "Copy $peer_cert from: $INPUT to $OUTPUT" 
 
 
 cp "$INPUT/$peer_cert" "$OUTPUT" 
