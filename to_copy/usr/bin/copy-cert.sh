@@ -9,7 +9,7 @@ OUTPUT="/etc/encryptme"
 echo "Copy $peer_cert from: $INPUT to $OUTPUT" 
 
 
-cp "$INPUT/$peer_cert" "$OUTPUT" 
+cp "$peer_cert" "$OUTPUT" 
 
 
 exit 0
