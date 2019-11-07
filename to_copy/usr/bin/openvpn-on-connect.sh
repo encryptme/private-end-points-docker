@@ -2,6 +2,7 @@
 
 LOCKFILE="/etc/encryptme/data/.cert_lock"
 SESSION_MAP="/etc/encryptme/data/cert_session_map"
+END_DATE_FILE="/etc/encryptme/data/cert_end_date"
 
 
 fail() {
@@ -21,12 +22,16 @@ while [ -f "$LOCKFILE" ]; do
 done
 
 echo "$$" > $LOCKFILE
-grep -v $common_name $SESSION_MAP > tmp && mv tmp $SESSION_MAP
+
+grep -v $common_name $SESSION_MAP > tmp
+mv -f tmp $SESSION_MAP
 
 serial_0=$(echo $tls_serial_hex_0 |tr -d : | tr '[:lower:]' '[:upper:]')
 serial_1=$(echo $tls_serial_hex_1 |tr -d : | tr '[:lower:]' '[:upper:]')
 serial_2=$(echo $tls_serial_hex_2 |tr -d : | tr '[:lower:]' '[:upper:]')
 
-echo $common_name,$serial_0,$serial_1,$serial_2 >> $SESSION_MAP
+end_date=$(grep $common_name $END_DATE_FILE | tail -1 | cut -d "," -f 2)
+
+echo $common_name,$serial_0,$serial_1,$serial_2,$end_date >> $SESSION_MAP
 
 rm $LOCKFILE
