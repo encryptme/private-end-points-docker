@@ -4,8 +4,8 @@ BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
 FILTERS_DIR="/etc/encryptme/filters"
-DOMAIN_RE="^([A-Za-z0-9-]+\.)+[A-Za-z]{2,}"
-CIDR_RE="([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,3})?"
+DOMAIN_RE="^([A-Za-z0-9-]+\.)+[A-Za-z]{2,}$"
+CIDR_RE="^([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,3})?$"
 TMP_DIR="/tmp/$SCRIPT_NAME.$$" && mkdir -p "$TMP_DIR" \
     || fail "Failed to create temporary directory '$TMP_DIR'"
 
