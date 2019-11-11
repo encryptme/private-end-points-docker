@@ -44,6 +44,7 @@ terminate_expired_certs() {
             if [[ $now_epoch > $end_date_epoch ]]; then
                 session=$( echo $line | cut -d ',' -f 1 )
                 kill_session $session
+            fi
         fi  
     done
 }
