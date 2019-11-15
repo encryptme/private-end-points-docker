@@ -328,6 +328,8 @@ fi
 
 
 # Start services
+chmod -R 644 /etc/cron.d/*
+
 if [ -x /usr/sbin/crond ]; then
     rundaemon crond
 else
