@@ -38,7 +38,7 @@ echo "$$" > $LOCKFILE
     grep -v $common_name $END_DATE_FILE > tmp
     mv -f tmp $END_DATE_FILE
 
-    echo $common_name,$serial,email,$end_date >> $END_DATE_FILE
+    echo $common_name,$serial,$email,$end_date >> $END_DATE_FILE
 }
 
 rm $LOCKFILE
