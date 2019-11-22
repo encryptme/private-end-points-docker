@@ -31,7 +31,7 @@ echo "$$" > $LOCKFILE
 
     end_date=$(openssl x509 -noout -in "$peer_cert" -enddate | cut -d "=" -f 2)
     common_name=$(echo $subject | grep -o 'CN=[a-z_0-9]*' | cut -d "=" -f 2)
-    email=$(echo $subject | grep -o 'E=.*,' | tail -c +3 | head -c -2)
+    email=$(echo $subject | grep -o 'emailAddress=.*,' | cut -d "=" -f 2 | head -c -2)
     serial=$(openssl x509 -noout -in "$peer_cert" -serial | cut -d "=" -f 2)
 
     # Prune old records with the same common name
