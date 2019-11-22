@@ -35,10 +35,11 @@ serial_0=$(echo $tls_serial_hex_0 |tr -d : | tr '[:lower:]' '[:upper:]')
 serial_1=$(echo $tls_serial_hex_1 |tr -d : | tr '[:lower:]' '[:upper:]')
 serial_2=$(echo $tls_serial_hex_2 |tr -d : | tr '[:lower:]' '[:upper:]')
 
-end_date=$(grep $serial_0 $END_DATE_FILE | tail -1 | cut -d "," -f 3)
+email=$(grep $serial_0 $END_DATE_FILE | tail -1 | cut -d "," -f 3)
+end_date=$(grep $serial_0 $END_DATE_FILE | tail -1 | cut -d "," -f 4)
 
 # Stores client certificate info 
-echo $common_name,$serial_0,$serial_1,$serial_2,$end_date >> $SESSION_MAP
+echo $common_name,$serial_0,$serial_1,$serial_2,$email,$end_date >> $SESSION_MAP
 
 grep -v $serial_0 $END_DATE_FILE > tmp
 mv -f tmp $END_DATE_FILE

@@ -1,7 +1,5 @@
 #!/bin/bash -u
 
-
-
 # An OpenVPN tls-verify script
 #
 # This would obtain certificate's end date of a pending TLS connection.
@@ -27,19 +25,20 @@ while [ -f "$LOCKFILE" ]; do
 done
 echo "$$" > $LOCKFILE
 
-# Verify to only use the end-entity certificate in the chain, discarding CA
+# Only use the end-entity certificate in the chain, discarding CA
 # certificates
 [ "$depth" -eq 0 ] && {
 
     end_date=$(openssl x509 -noout -in "$peer_cert" -enddate | cut -d "=" -f 2)
     common_name=$(echo $subject | grep -o 'CN=[a-z_0-9]*' | cut -d "=" -f 2)
+    email=$(echo $subject | grep -o 'E=.*,' | tail -c +3 | head -c -2)
     serial=$(openssl x509 -noout -in "$peer_cert" -serial | cut -d "=" -f 2)
 
     # Prune old records with the same common name
     grep -v $common_name $END_DATE_FILE > tmp
     mv -f tmp $END_DATE_FILE
 
-    echo $common_name,$serial,$end_date >> $END_DATE_FILE
+    echo $common_name,$serial,email,$end_date >> $END_DATE_FILE
 }
 
 rm $LOCKFILE
