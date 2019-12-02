@@ -39,3 +39,10 @@ push "sndbuf 493216"
 push "rcvbuf 493216"
 push "comp-lzo no"
 
+{% if cloak_server.routes is defined %}
+{% for route in cloak_server.routes %}
+push "route {{route}}"
+{% endfor %}
+{% else %}
+push "redirect-gateway def1"
+{% endif %}
