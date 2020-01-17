@@ -17,6 +17,9 @@ COMMIT
 :INPUT DROP
 {% endif %}
 
+-A INPUT -p esp -j ACCEPT
+-A INPUT -p ah -j ACCEPT
+
 -A FORWARD -o tun+ -j ACCEPT
 -A FORWARD -i tun+ -j ACCEPT
 
