@@ -1,4 +1,4 @@
 #min	hour	day/month	month	day/week
 @daily root /usr/bin/update-pki.sh
 */5 * * * * root /usr/bin/refresh-crls.sh
-0 0 1,15,22,28 * * root /usr/bin/renew-cert.sh
+0 0 1,8,15,22 * * root /usr/bin/renew-cert.sh
