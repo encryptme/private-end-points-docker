@@ -7,8 +7,8 @@ RUN yum clean all && \
     yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat ipset && \
     rm -rf /var/cache/yum
 
-LABEL version=0.10
-RUN echo "v0.10.1" > /container-version-id
+LABEL version=0.11
+RUN echo "v0.11" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
