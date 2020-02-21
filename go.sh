@@ -28,7 +28,7 @@ verbose=0
 restart=0
 tune_network=0
 cert_type="letsencrypt"
-eme_img="encryptme/pep"  # TODO: finalize w/ Encryptme hub account
+eme_img="encryptme/pep"
 wt_image="v2tec/watchtower"
 name="encryptme"
 logging=0
@@ -196,7 +196,6 @@ server_init() {
         -e ENCRYPTME_TUNE_NETWORK=$tune_network \
         -e INIT_ONLY=1 \
         -e DNS_TEST_IP="$dns_test_ip" \
-        -e DNS_CHECK=$dns_check \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /lib/modules:/lib/modules \
@@ -252,8 +251,7 @@ server_run() {
     cmd docker run -d --name "$name" \
         -e SSL_EMAIL="$ssl_email" \
         -e ENCRYPTME_API_URL="$api_url" \
-        -e VERBOSE=$verbose \
-        -e DNS_CHECK=$dns_check \
+        -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_STATS=$send_stats \
         -e ENCRYPTME_STATS_SERVER=$stats_server \
         -e ENCRYPTME_STATS_ARGS="$stats_args" \
@@ -437,7 +435,7 @@ esac
     collect_args
     
     #load sysctl configuration
-#    cp $BASE_DIR/sysctl.conf /etc
+#    cp "$BASE_DIR/configs/sysctl.conf" /etc
 #    /sbin/sysctl -p /etc/sysctl.conf
 }
 
