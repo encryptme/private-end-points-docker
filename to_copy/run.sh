@@ -263,7 +263,6 @@ fi
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
 LETSENCRYPT=0
-OLD_CONFIG=0
 if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     LETSENCRYPT=1
     if [ "$DNSOK" = 0 ]; then
@@ -279,23 +278,14 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     for fqdn in $FQDNS; do
         LE_ARGS=("${LE_ARGS[@]}" -d $fqdn)
 
-        #detect out-of-date LetsEncrypt configs
-        if [ "$OLD_CONFIG" = 0 ]; then
-            config_file="/etc/letsencrypt/renewal/$fqdn.conf"
-            [ -f "$config_file" ] &&
-                cat $config_file | grep -q "^standalone_supported_challenges" && OLD_CONFIG=1
-        fi
-    done
-
-    # Remove out-of-date LetsEncrypt configs and certificates
-    if [ "$OLD_CONFIG" = 1 ]; then
-        for fqdn in $FQDNS; do
-            config_file="/etc/letsencrypt/renewal/$fqdn.conf"
-            [ -f "$config_file" ] && rm $config_file
+        # look for out-of-date LetsEncrypt configs and remove them so we can get a fresh data
+        config_file="/etc/letsencrypt/renewal/$fqdn.conf"
+        grep -q "^standalone_supported_challenges" "$config_file" &&  {
+            rm -f "$config_file"
             rm -rf "/etc/letsencrypt/archive/$fqdn"
             rm -rf "/etc/letsencrypt/live/$fqdn"
-        done
-    fi
+        }
+    done
     
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         LE_ARGS=("${LE_ARGS[@]}" --staging)
