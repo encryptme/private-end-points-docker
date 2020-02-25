@@ -277,7 +277,16 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     )
     for fqdn in $FQDNS; do
         LE_ARGS=("${LE_ARGS[@]}" -d $fqdn)
+
+        # look for out-of-date LetsEncrypt configs and remove them so we can get a fresh data
+        config_file="/etc/letsencrypt/renewal/$fqdn.conf"
+        grep -q "^standalone_supported_challenges" "$config_file" 2>/dev/null &&  {
+            rm -f "$config_file"
+            rm -rf "/etc/letsencrypt/archive/$fqdn"
+            rm -rf "/etc/letsencrypt/live/$fqdn"
+        }
     done
+    
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         LE_ARGS=("${LE_ARGS[@]}" --staging)
     fi
