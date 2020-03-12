@@ -30,6 +30,7 @@ class FilterList():
         """
         Build entries from file.
         """
+        self.disable_doh = False
         self.blacklist = set()
         self.load(filters_dir)
 
@@ -47,6 +48,7 @@ class FilterList():
                 continue
             for domain in self._yield_lines(os.path.join(filters_dir, name)):
                 self.blacklist.add(domain)
+        self.disable_doh = bool(self.blacklist)
 
     def is_blocked(self, domain):
         '''
@@ -91,9 +93,18 @@ class FilterDaemon(Daemon):
                 data = connection.recv(2048)
                 if data:
                     request = json.loads(data)
-                    connection.sendall(json.dumps(
-                        filter_list.is_blocked(request['domain'].strip())
-                    ))
+
+
+                    if 'domain' in request:
+                        resp = filter_list.is_blocked(request['domain'].strip())
+                    elif 'disable_doh' in request:
+                        resp = filter_list.disable_doh
+                    connection.sendall(json.dumps(resp))
+
+
+                    # connection.sendall(json.dumps(
+                    #     filter_list.is_blocked(request['domain'].strip())
+                    # ))
 
 
 
