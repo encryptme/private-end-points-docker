@@ -9,7 +9,7 @@ intercept_address = "0.0.0.0"
 sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
 doh_canary_domains = ["use-application-dns.net"]
-doh_provider_domains = []
+doh_provider_domains = ["cloudflare-dns.com"]
 
 
 def check_for_socket():
@@ -21,23 +21,37 @@ def check_for_socket():
         sleep(0.25)
 
 
-def is_blacklist_empty():
+def send_request(data):
     while True:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(sock_file)
-        sock.sendall(json.dumps({'disable_doh': ''}))
+        sock.sendall(json.dumps(data))
         resp = str(sock.recv(2048))
-        return not json.loads(resp)
+        return json.loads(resp)
+
+
+def is_blacklist_empty():
+    # while True:
+    #     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    #     sock.connect(sock_file)
+    #     sock.sendall(json.dumps({'disable_doh': ''}))
+    #     resp = str(sock.recv(2048))
+    #     return not json.loads(resp)
+
+    resp = send_request({'disable_doh': ''})
+    return not resp
 
 
 def is_blocked(name):
     # block this name, and any subdomains of that name 
-    while True:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(sock_file)
-        sock.sendall(json.dumps({'domain': name}))
-        resp = str(sock.recv(2048))
-        return json.loads(resp)
+    # while True:
+    #     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    #     sock.connect(sock_file)
+    #     sock.sendall(json.dumps({'domain': name}))
+    #     resp = str(sock.recv(2048))
+    #     return json.loads(resp)
+
+    return send_request({'domain': name})
 
 
 def init(id, cfg):
@@ -63,6 +77,10 @@ def operate(id, event, qstate, qdata):
                 qstate.ext_state[id] = MODULE_FINISHED
                 return True            
 
+            if name in doh_provider_domains:
+                qstate.return_rcode = RCODE_NOERROR
+                qstate.ext_state[id] = MODULE_FINISHED
+                return True   
 
         # not blocked or server isn't running? do nothing
         if not sock_exist or not is_blocked(name):
