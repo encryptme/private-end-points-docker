@@ -102,12 +102,6 @@ class FilterDaemon(Daemon):
                     connection.sendall(json.dumps(resp))
 
 
-                    # connection.sendall(json.dumps(
-                    #     filter_list.is_blocked(request['domain'].strip())
-                    # ))
-
-
-
 if __name__ == "__main__":
     daemon = FilterDaemon(
         socket_path=SOCKET_PATH,

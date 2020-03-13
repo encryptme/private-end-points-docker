@@ -31,26 +31,11 @@ def send_request(data):
 
 
 def is_blacklist_empty():
-    # while True:
-    #     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    #     sock.connect(sock_file)
-    #     sock.sendall(json.dumps({'disable_doh': ''}))
-    #     resp = str(sock.recv(2048))
-    #     return not json.loads(resp)
-
     resp = send_request({'disable_doh': ''})
     return not resp
 
 
 def is_blocked(name):
-    # block this name, and any subdomains of that name 
-    # while True:
-    #     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    #     sock.connect(sock_file)
-    #     sock.sendall(json.dumps({'domain': name}))
-    #     resp = str(sock.recv(2048))
-    #     return json.loads(resp)
-
     return send_request({'domain': name})
 
 
