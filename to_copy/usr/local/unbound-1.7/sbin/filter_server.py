@@ -93,13 +93,9 @@ class FilterDaemon(Daemon):
                 data = connection.recv(2048)
                 if data:
                     request = json.loads(data)
-
-
-                    if 'domain' in request:
-                        resp = filter_list.is_blocked(request['domain'].strip())
-                    elif 'disable_doh' in request:
-                        resp = filter_list.disable_doh
-                    connection.sendall(json.dumps(resp))
+                    is_blocked = filter_list.is_blocked(request['domain'].strip())
+                    disable_doh = filter_list.disable_doh
+                    connection.sendall(json.dumps((is_blocked, disable_doh)))
 
 
 if __name__ == "__main__":
