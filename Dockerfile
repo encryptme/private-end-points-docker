@@ -7,7 +7,7 @@ RUN yum clean all && \
     yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat ipset && \
     rm -rf /var/cache/yum
 
-LABEL version=0.11.1
+LABEL version=0.11.2
 RUN echo "v0.11.1" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
