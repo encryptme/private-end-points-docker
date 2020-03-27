@@ -31,7 +31,7 @@ conn cloak
     leftsendcert = always
     leftsubnet = {% if cloak_server.target.ikev2[0].routes is defined %}{{cloak_server.target.ikev2[0].routes}}{% else %}0.0.0.0/0{% endif %}
 
-
+    # rightca is the distinguished name of the CA that signs client
     # certificates. This narrows the set of valid client certificates we'll
     # accept for this configuration.
     right = %any
