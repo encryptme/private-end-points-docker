@@ -464,6 +464,7 @@ while [ ! -z "$conf" ]; do
     echo "$conf" > "$ENCRYPTME_DATA_DIR/openvpn.$n.json"
     /bin/template.py \
         -d "$ENCRYPTME_DATA_DIR/openvpn.$n.json" \
+        -x "$ENCRYPTME_DATA_DIR/server.json" \
         -s /etc/openvpn/openvpn.conf.j2 \
         -o /etc/openvpn/server-$n.conf \
         -v logging=$ENCRYPTME_LOGGING

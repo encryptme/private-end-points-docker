@@ -1,14 +1,14 @@
 dev tun
-proto {{cloak_server.proto}}
-port {{cloak_server.port}}
-cipher {{cloak_server.cipher}}
-auth {{cloak_server.digest}}
+proto {{data.proto}}
+port {{data.port}}
+cipher {{data.cipher}}
+auth {{data.digest}}
 
 {% if not logging %}
     log-append /dev/null
 {% endif %}
 
-server {% if cloak_server.proto=='udp' %}100.64.0.0{% else %}100.64.64.0{% endif %} 255.255.192.0
+server {% if data.proto=='udp' %}100.64.0.0{% else %}100.64.64.0{% endif %} 255.255.192.0
 
 # We keep all of our certificates and CRLs in /etc/encryptme/pki/.
 key /etc/encryptme/pki/cloak.pem
@@ -19,15 +19,15 @@ crl-verify /etc/encryptme/pki/crls.pem
 
 dh /etc/encryptme/pki/dh2048.pem
 
-push "dhcp-option DNS {% if cloak_server.proto=='udp' %}100.64.0.1{% else %}100.64.64.1{% endif %}"
+push "dhcp-option DNS {% if data.proto=='udp' %}100.64.0.1{% else %}100.64.64.1{% endif %}"
 
 remote-cert-eku "TLS Web Client Authentication"
 
 keepalive 10 120
-{% if cloak_server.proto == 'udp' %}
+{% if data.proto == 'udp' %}
     push "explicit-exit-notify"
     fast-io
-{% elif cloak_server.proto == 'tcp' %}
+{% elif data.proto == 'tcp' %}
     tcp-nodelay
 {% endif %}
 
@@ -39,3 +39,11 @@ push "sndbuf 493216"
 push "rcvbuf 493216"
 push "comp-lzo no"
 
+{% if data.server.routes %}
+    {% for route in data.server.routes %}
+    {% set cidr_info = route.split('/') %}
+push "route {{ cidr_info[0] }} {{ data.netmask_mapping[cidr_info[1]] }}"
+    {% endfor %}
+{% else %}
+push "redirect-gateway def1"
+{% endif %}
