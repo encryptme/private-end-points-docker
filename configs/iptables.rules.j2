@@ -3,7 +3,7 @@
 *filter
 -F
 
-#Docker
+# Docker
 :INPUT DROP
 :FORWARD DROP
 :OUTPUT ACCEPT
@@ -22,10 +22,12 @@
 -A FORWARD -i docker0 -o docker0 -j ACCEPT
 -A FORWARD -o tun+ -j ACCEPT
 -A FORWARD -i tun+ -j ACCEPT
+-A FORWARD -o wg+ -j ACCEPT
+-A FORWARD -i wg+ -j ACCEPT
 -A DOCKER-ISOLATION -j RETURN
 -A DOCKER-USER -j RETURN
 
-#ENCRYPTME
+# ENCRYPTME
 :ENCRYPTME - [0:0]
 -A INPUT -j ENCRYPTME
 
@@ -37,7 +39,7 @@
 # All TCP sessions should begin with SYN
 -A ENCRYPTME -p tcp ! --syn -m state --state NEW -s 0/0 -j DROP
 
-#Allow limitted inbound ICMP packets
+# Allow limitted inbound ICMP packets
 -I ENCRYPTME -p icmp --icmp-type echo-request -m recent --set
 -I ENCRYPTME -p icmp --icmp-type echo-request -m recent --update --seconds 5 --hitcount 10 -j DROP
 -A ENCRYPTME -p icmp -j ACCEPT
@@ -47,43 +49,42 @@
 -A ENCRYPTME -p {{config.proto}} --dport {{config.port}} -j ACCEPT
 {% endfor %}
 
-# IPsec, isakmp
+# IPsec, isakmp, wireguard
 -A ENCRYPTME -p udp -m udp --dport 500 -j ACCEPT
 -A ENCRYPTME -p udp -m udp --dport 4500 -j ACCEPT
+-A ENCRYPTME -p udp -m udp --dport 51820 -j ACCEPT
 
 # DNS through the tunnel
 -A ENCRYPTME -s 100.64.0.0/10 -p udp -m udp --dport 53 -j ACCEPT
 -A ENCRYPTME -s 100.64.0.0/10 -p tcp -m tcp --dport 53 -j ACCEPT
 
-#Allow in/out from VPN network
+# Allow in/out from VPN network
 -A ENCRYPTME -d 100.64.0.0/10 -j ACCEPT
 -A ENCRYPTME -s 100.64.0.0/10 -j ACCEPT
 
-#VPN traffic pass through
+# VPN traffic pass through
 -I FORWARD -j ENCRYPTME
-#-A FORWARD -d 100.64.0.0/10 -j ENCRYPTME
 COMMIT
 
 *nat
 -F
-#Docker
+# Docker
 :PREROUTING ACCEPT [0:0]
 :INPUT ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
 :POSTROUTING ACCEPT [0:0]
 :DOCKER - [0:0]
 
-#Docker
+# Docker
 -A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
 -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
 -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
 -A DOCKER -i docker0 -j RETURN
 
-#ENCRYPTME
+# ENCRYPTME
 :ENCRYPTME-NAT - [0:0]
 -A ENCRYPTME-NAT -s 100.64.0.0/10 -j SNAT --to-source {{ip}} --random
 -A POSTROUTING -s 100.64.0.0/10 -j ENCRYPTME-NAT
 COMMIT
 
-#END
-
+# END

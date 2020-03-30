@@ -1,14 +1,37 @@
 FROM centos:7
 
-RUN yum clean all && \
-    yum -y -q update && \
-    yum -y -q install epel-release && yum -y update && \
-    yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git jq gcc bind-utils && \
-    yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat ipset && \
-    rm -rf /var/cache/yum
+RUN yum clean all \
+    && yum -y -q update \
+    && yum -y -q install epel-release \
+    && yum -y update \
+    && yum -y -q install \
+        cronie \
+        python-pip \
+        python34 \
+        python-devel \
+        python34-devel \
+        python34-pip \
+        git \
+        jq \
+        gcc \
+        bind-utils \
+    && yum -y -q install \
+        openvpn \
+        strongswan \
+        kmod \
+        letsencrypt \
+        vim \
+        curl \
+        socat \
+        ipset
 
-LABEL version=0.11.1
-RUN echo "v0.11.1" > /container-version-id
+RUN curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo \
+        https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
+    && yum -y -q install wireguard-dkms wireguard-tools \
+    && rm -rf /var/cache/yum
+
+LABEL version=0.11.1.wg
+RUN echo "v0.11.1.wg" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \

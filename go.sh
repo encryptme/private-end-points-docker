@@ -433,10 +433,6 @@ esac
     # get auth/server info if needed
     rem "interactively collecting any required missing params"
     collect_args
-    
-    #load sysctl configuration
-#    cp "$BASE_DIR/configs/sysctl.conf" /etc
-#    /sbin/sysctl -p /etc/sysctl.conf
 }
 
 
