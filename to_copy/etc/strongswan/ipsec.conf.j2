@@ -30,6 +30,7 @@ conn cloak
     {% endif -%}
     leftsendcert = always
     leftsubnet = 0.0.0.0/0
+    leftupdown = /usr/bin/ipsec-updown.sh
 
     # rightca is the distinguished name of the CA that signs client
     # certificates. This narrows the set of valid client certificates we'll
