@@ -97,25 +97,24 @@ query_a() {
 setup_wireguard() {
     local ip_addr="$1"
     local conf="$ENCRYPTME_DATA_DIR/server.json"
-    local wg_port=$(jq -e '.target.wireguard.port' "$conf") || wg_port=51820
     local dirty=0
     # generate keys and initial configs
     modprobe wireguard
-    mkdir -p "$ENCRYPTME_DIR/wireguard"
+    mkdir -p "$ENCRYPTME_DIR/wireguard/keys"
     ( 
         cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard" wireguard
         cd "$ENCRYPTME_DIR/wireguard"
         # ensure our files are not readable by others
         umask 077
         [ -s privatekey -a -s publickey ] || {
-            wg genkey | tee privatekey | wg pubkey | tee publickey
+            wg genkey | tee keys/private | wg pubkey | tee keys/public
             dirty=1
         }
         # if we got a new key or we have no config at all... write one
         [ $dirty -eq 1 -o \! -s $WG_IFACE.conf ] && {
             cat > $WG_IFACE.conf <<EOI
 [Interface]
-PrivateKey = $(<privatekey)
+PrivateKey = $(<keys/private)
 Address = $ip_addr/32
 ListenPort = 51820
 EOI
@@ -124,6 +123,9 @@ EOI
         ip link show $WG_IFACE &>/dev/null && ip link delete $WG_IFACE
         wg-quick up $WG_IFACE
     ) || fail "Failed to setup wireguard"
+    # register our public key
+    encryptme_server update -W $(<"$ENCRYPTME_DATA_DIR/wireguard/keys/public") \
+        || fail "Failed to register WireGuard public key"
 }
 
 
