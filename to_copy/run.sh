@@ -5,11 +5,11 @@
 # - registers with Encrypt.me and fetches configuration information
 # - stores everything in $ENCRYPTME_DIR
 # - setups up SSL, VPN daemons, etc
-# - configures network: uses 100.64.*.* for client connections:
+# - configures network: uses 100.64.0.0/10 for client connections:
 #   - openvpn udp   = 100.64.0.0   > 100.64.63.255  (/18)
 #   - openvpn tcp   = 100.64.64.0  > 100.64.127.255 (/18)
 #   - ipsec udp     = 100.64.128.0 > 100.64.191.255 (/18)
-#   - wireguard udp = 100.64.192.0 > 100.64.255.255 (/18)
+#   - wireguard udp = 100.96.0.0   > 100.127.255.255 (/11)
 
 
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
@@ -98,15 +98,16 @@ setup_wireguard() {
     local ip_addr="$1"
     local conf="$ENCRYPTME_DATA_DIR/server.json"
     local dirty=0
+    local wg_refresh_args=('wg_iface=wg0')
     # generate keys and initial configs
-    modprobe wireguard
+    modprobe wireguard  # ensure kernel model is loaded
     mkdir -p "$ENCRYPTME_DIR/wireguard/keys"
     ( 
-        cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard" wireguard
+        cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard"
         cd "$ENCRYPTME_DIR/wireguard"
         # ensure our files are not readable by others
         umask 077
-        [ -s privatekey -a -s publickey ] || {
+        [ -s keys/private -a -s keys/public ] || {
             wg genkey | tee keys/private | wg pubkey | tee keys/public
             dirty=1
         }
@@ -120,12 +121,18 @@ ListenPort = 51820
 EOI
         }
         # if we have an interface, remove it first
-        ip link show $WG_IFACE &>/dev/null && ip link delete $WG_IFACE
-        wg-quick up $WG_IFACE
+        ip link show "$WG_IFACE" &>/dev/null && ip link delete "$WG_IFACE"
+        wg-quick up "$WG_IFACE"
     ) || fail "Failed to setup wireguard"
     # register our public key
-    encryptme_server update -W $(<"$ENCRYPTME_DATA_DIR/wireguard/keys/public") \
+    encryptme_server update -W $(<"$ENCRYPTME_DIR/wireguard/keys/public") \
         || fail "Failed to register WireGuard public key"
+    # set peer configuration information based on authorized users/devices
+    if [ -n "$ENCRYPTME_API_URL" ]; then
+        wg_refresh_args+=("base_url=$ENCRYPTME_API_URL")
+    fi
+    refresh-wireguard.py "${wg_refresh_args[@]}" \
+        || fail "Failed to set initial WireGuard peers"
 }
 
 
@@ -439,7 +446,8 @@ rem "Configuring IPTables, as needed"
     rem "Configuring the ENCRYPTME chain"
     # merge host rules w/ our own
     /sbin/iptables-save > "$ENCRYPTME_DIR/iptables.host.rules"
-    cat "$ENCRYPTME_DIR/iptables.host.rules" "$ENCRYPTME_DIR/iptables.eme.rules" > "$ENCRYPTME_DIR/iptables.rules"
+    cat "$ENCRYPTME_DIR/iptables.host.rules" "$ENCRYPTME_DIR/iptables.eme.rules" \
+        > "$ENCRYPTME_DIR/iptables.rules"
     /sbin/iptables-restore --noflush "$ENCRYPTME_DIR/iptables.rules"
     # prune dupes, except for 'COMMIT' lines
     /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 

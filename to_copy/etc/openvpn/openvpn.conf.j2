@@ -25,10 +25,10 @@ remote-cert-eku "TLS Web Client Authentication"
 
 keepalive 10 120
 {% if data.proto == 'udp' %}
-    push "explicit-exit-notify"
-    fast-io
+push "explicit-exit-notify"
+fast-io
 {% elif data.proto == 'tcp' %}
-    tcp-nodelay
+tcp-nodelay
 {% endif %}
 
 comp-lzo no
@@ -39,8 +39,8 @@ push "sndbuf 493216"
 push "rcvbuf 493216"
 push "comp-lzo no"
 
-{% if data.server.routes %}
-    {% for route in data.server.routes %}
+{% if server.target.routes %}
+    {% for route in server.target.routes %}
     {% set cidr_info = route.split('/') %}
 push "route {{ cidr_info[0] }} {{ data.netmask_mapping[cidr_info[1]] }}"
     {% endfor %}

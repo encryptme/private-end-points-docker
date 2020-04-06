@@ -18,7 +18,7 @@ PEERS_FILE = EME_DIR + '/peers.json'
 
 
 def rem(msg, color='33'):
-    sys.stdout.write('[0;%sm#[1;%sm %s[0;0m\n' % (color, color, msg))
+    sys.stdout.write('m#m %s\n' % (color, color, msg))
 
 
 def run(cmd, dryrun=False, verbose=False):
@@ -70,8 +70,8 @@ def fetch_eme_conf(base_url, config_file=None, verbose=False):
     stdout, stderr = run(cmd, verbose=verbose)
     eme_conf = {}  # maps pubkey to private IP
     eme_data = json.loads(stdout)
-    for user in eme_data:
-        user_data = eme_data[user]
+    for user in eme_data['wireguard_peers']:
+        user_data = eme_data['wireguard_peers'][user]
         for device in user_data:
             device_data =  user_data[device]
             eme_conf[device_data['public_key']] = device_data['private_ipv4_address']
@@ -86,11 +86,11 @@ def fetch_wg_conf(wg_iface, verbose=False):
     wg_conf = {}  # maps pubkey to WGPeer namedtuples
     wg_re = re.compile('\s+')
     # first line is server interface info, so we skip it
-    for line in stdout.split()[1:]:
+    for line in stdout.strip().split('\n')[1:]:
         clean_line = line.strip()
         if not clean_line:
             continue
-        wg_peer = WGPeer(wg_re.split(line))
+        wg_peer = WGPeer(*wg_re.split(line))
         wg_conf[wg_peer.public_key] = wg_peer
     return wg_conf
 
@@ -101,7 +101,7 @@ def wg_up(wg_iface, pubkey, allowed_ips, dryrun=False, verbose=False):
     '''
     run(['ip', '-4', 'route', 'add', allowed_ips, 'dev', wg_iface], dryrun, verbose)
     run(['wg', 'set', wg_iface, 'peer', pubkey, 'allowed-ips', allowed_ips], dryrun, verbose)
-    
+
 
 def wg_down(wg_iface, wg_peer, dryrun=False, verbose=False):
     '''
@@ -109,7 +109,6 @@ def wg_down(wg_iface, wg_peer, dryrun=False, verbose=False):
     '''
     run(['wg', 'set', wg_iface, 'peer', wg_peer.public_key, 'remove'], dryrun, verbose)
     run(['ip', '-4', 'route', 'del', wg_peer.allowed_ips, 'dev', wg_iface], dryrun, verbose)
-    
 
 
 def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False):
@@ -165,8 +164,7 @@ def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False)
         wg_up(wg_iface, pubkey, eme_conf[pubkey], dryrun, verbose)
         for pubkey in pubkeys_new
     ]
-    
-    
+
 
 #
 # Parse out "foo=bar" type parameters and runs the script.
@@ -178,7 +176,7 @@ if __name__ == '__main__':
 
     # poor man's argparse
     args = {
-        'wg_iface': None,
+        'wg_iface': 'wg0',
         'config_file': None,
         'base_url': 'https://app.encrypt.me/',
         'dryrun': False,
@@ -193,10 +191,4 @@ if __name__ == '__main__':
         if arg_val.isdigit():
             arg_val = int(arg_val)
         args[arg_name] = arg_val
-    if not args['wg_iface']:
-        raise Exception("You must pass wg_iface=X as a required parameter.")
-    try:
-        main(**args)
-    except Exception as ex:
-        sys.stderr.write(str(ex) + '\n')
-        sys.exit(1)
+    main(**args)
