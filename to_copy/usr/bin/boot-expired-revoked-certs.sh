@@ -4,10 +4,8 @@ LOCKFILE="/etc/encryptme/data/.cert_lock"
 SESSION_MAP=/etc/encryptme/data/cert_session_map
 URL_FILE=/etc/encryptme/pki/crl_urls.txt
 CRL_LIST_FILE=/tmp/crl.list
-# IPSEC_CERT_INFO=/tmp/ipsec_cert_info
-# REVOKED_CERTS=/tmp/revoked_certs
-IPSEC_CERT_INFO=/etc/encryptme/data/ipsec_cert_info
-REVOKED_CERTS=/etc/encryptme/data/revoked_certs
+IPSEC_CERT_INFO=/tmp/ipsec_cert_info
+REVOKED_CERTS=/tmp/revoked_certs
 
 
 fail() {
