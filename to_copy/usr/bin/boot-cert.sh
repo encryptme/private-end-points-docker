@@ -11,7 +11,7 @@ fail() {
 
                
 for socket in "/var/run/openvpn/*.sock"; do
-    OPENVPN_CONNECTION=$(echo status | socat - UNIX-CONNECT:/var/run/openvpn/server-0.sock | grep $1)
+    OPENVPN_CONNECTION=$(echo status | socat - UNIX-CONNECT:/var/run/openvpn/server-0.sock | grep "$1")
     [ -n "$OPENVPN_CONNECTION" ] && break
 done
 

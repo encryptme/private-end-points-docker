@@ -4,7 +4,10 @@ LOCKFILE="/etc/encryptme/data/.cert_lock"
 SESSION_MAP=/etc/encryptme/data/cert_session_map
 URL_FILE=/etc/encryptme/pki/crl_urls.txt
 CRL_LIST_FILE=/tmp/crl.list
-IPSEC_CERT_INFO=/tmp/ipsec_cert_info
+# IPSEC_CERT_INFO=/tmp/ipsec_cert_info
+# REVOKED_CERTS=/tmp/revoked_certs
+IPSEC_CERT_INFO=/etc/encryptme/data/ipsec_cert_info
+REVOKED_CERTS=/etc/encryptme/data/revoked_certs
 
 
 fail() {
@@ -13,6 +16,13 @@ fail() {
     exit ${2:-1}
 }
 
+
+get_revoked_certs() {
+    xargs -n 1 curl -s -o $CRL_LIST_FILE  < $URL_FILE
+
+    openssl crl -inform DER -text -noout -in $CRL_LIST_FILE  \
+        | grep "Serial Number" | sed 's/.*Serial Number: //g' > $REVOKED_CERTS
+}
 
 
 get_ipsec_cert_info() {
@@ -31,10 +41,11 @@ get_ipsec_cert_info() {
             [ -n "$output" ] && record="$record;EXPIRED" || record="$record;"
         }
 
-        output=$(echo $line | grep "serial:" | sed 's/.*serial: //g' | tr -d ':' )
-        [ -n "$output" ] && {
-            output=$(echo $output | tr [a-z] [A-Z] )
-            record="$record;$output"
+        serial=$(echo $line | grep "serial:" | sed 's/.*serial: //g' | tr -d ':' )
+        [ -n "$serial" ] && {
+            serial=${serial^^}
+            record="$record;$serial"
+            grep $serial $REVOKED_CERTS && record="$record;REVOKED"
         }
 
         output=$(echo $line | grep "flags:" | sed 's/.*flags: //g')
@@ -47,10 +58,10 @@ get_ipsec_cert_info() {
 
 kill_session() {
     local session="$1"
-    local openvpn_type="${1:-0}"
+    local openvpn_type="${2:-0}"
 
     echo killing session: $session
-    sh /usr/bin/boot-cert.sh $session
+    sh /usr/bin/boot-cert.sh "$session"
     [ $? -gt 0 ] && fail "Could not kill the session"
 
     if [ "$openvpn_type" -gt 0  ]; then
@@ -83,36 +94,43 @@ terminate_expired_certs() {
         fi  
     done
 
-    cat $IPSEC_CERT_INFO | while read line; do
-        subject=$(echo $line | grep "EXPIRED" | cut -d ';' -f 1 )
+    grep "EXPIRED" $IPSEC_CERT_INFO | while read -r line; do
+        subject=$(echo $line | cut -d ';' -f 1 )
         if [ -n "$subject" ]; then
-            kill_session $subject
+            valid=$(grep "$subject" $IPSEC_CERT_INFO | grep -v "EXPIRED")
+            [ -z "$valid" ] && {
+                echo "EXPIRED"
+                kill_session "$subject" 
+            }
         fi
     done
 }
 
 
 terminate_revoked_certs() {
-    xargs -n 1 curl -s -o $CRL_LIST_FILE  < $URL_FILE
-
-    openssl crl -inform DER -text -noout -in $CRL_LIST_FILE  \
-        | grep "Serial Number" | sed 's/.*Serial Number: //g' \
-        | while read -r line ; do
-
+    cat $REVOKED_CERTS | while read -r line ; do
         # If it exists in the session file kill it
         session=$(cat $SESSION_MAP | grep $line | awk '{split($0,a,","); print a[1]}')
         if [ -n "$session" ]; then
             kill_session $session 1
         fi
-
-        subject=$(grep $line $IPSEC_CERT_INFO | cut -d ';' -f 1)
-        if [ -n "$subject" ]; then
-            kill_session $subject
-        fi
-
     done
+
+    grep 'REVOKED' $IPSEC_CERT_INFO | while read -r line ; do
+        subject=$(echo $line | cut -d ';' -f 1 )
+        if [ -n "$subject" ]; then
+            valid=$(grep "$subject" $IPSEC_CERT_INFO | grep -v "REVOKED")
+            [ -z "$valid" ] && {
+                echo REVOKED
+                kill_session "$subject" 
+            }
+        fi
+    done
+
 }
 
+
+get_revoked_certs
 get_ipsec_cert_info
 terminate_expired_certs
 terminate_revoked_certs
