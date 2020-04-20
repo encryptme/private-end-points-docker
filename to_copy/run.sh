@@ -24,6 +24,7 @@ ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 DNS_FILTER_PID_FILE="/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
+CERT_SESSION_MAP="${ENCRYPTME_DATA_DIR}/cert_session_map"
 
 # helpers
 fail() {
@@ -82,6 +83,8 @@ fi
 
 cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
+
+touch $CERT_SESSION_MAP || fail "Failed to create cert_session_map"
 
 # Inside the container creates /etc/sysctl.d/encryptme.conf with sysctl.conf tuning params.
 if [ "$ENCRYPTME_TUNE_NETWORK" = 1 ]; then
@@ -277,7 +280,16 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     )
     for fqdn in $FQDNS; do
         LE_ARGS=("${LE_ARGS[@]}" -d $fqdn)
+
+        # look for out-of-date LetsEncrypt configs and remove them so we can get a fresh data
+        config_file="/etc/letsencrypt/renewal/$fqdn.conf"
+        grep -q "^standalone_supported_challenges" "$config_file" 2>/dev/null &&  {
+            rm -f "$config_file"
+            rm -rf "/etc/letsencrypt/archive/$fqdn"
+            rm -rf "/etc/letsencrypt/live/$fqdn"
+        }
     done
+    
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         LE_ARGS=("${LE_ARGS[@]}" --staging)
     fi

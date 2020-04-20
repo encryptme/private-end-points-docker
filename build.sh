@@ -15,7 +15,7 @@ Usage: $SCRIPT_NAME [OPTIONS] [DOCKER ARGS]
 OPTIONS:
 
   -b|--branch REPO   Branch for client and stats repos (default: based on env)
-  -e|--env ENV       Env to build/push (dev, stage, prod) (default: $env)
+  -e|--env ENV       Env to build/push (dev, staging, prod) (default: $env)
   -h|--help          This information
   -t|--tag TAG       Override image tag
   -p|--push          Automatically push to Docker hub
@@ -46,8 +46,8 @@ while [ $# -gt 0 ]; do
         --env|-e)
             [ $# -gt 0 ] || fail "Missing arg to --env|-e"
             env="$1"
-            [ "$env" = 'dev' -o "$env" = 'stage' -o "$env" = 'prod' ] \
-                || fail "Unknown env: '$env'; 'dev', 'stage' or 'prod' expected."
+            [ "$env" = 'dev' -o "$env" = 'staging' -o "$env" = 'prod' ] \
+                || fail "Unknown env: '$env'; 'dev', 'staging' or 'prod' expected."
             shift
             ;;
         --push|-p)
@@ -77,9 +77,9 @@ tag="encryptme/pep"
 if [ "$env" = 'dev' ]; then
     tag="$tag-dev"
     [ -n "$branch" ] || fail "Must specify branch to use for 'dev'"
-elif [ "$env" = 'stage' ]; then
-    tag="$tag-stage"
-    [ -n "$branch" ] || branch='stage'
+elif [ "$env" = 'staging' ]; then
+    tag="$tag-staging"
+    [ -n "$branch" ] || branch='staging'
 else
     [ -n "$branch" ] || branch='master'
 fi
