@@ -465,7 +465,7 @@ rundaemon /usr/local/unbound-1.7/sbin/unbound -d -c /usr/local/unbound-1.7/etc/u
 rem "Restoring blacklist filters on restart"
 /usr/bin/pep-filter.sh reload
 
-/usr/bin/ipsec-updown start
+/usr/bin/ipsec-updown.py start
 
 rem "Start-up complete"
 
