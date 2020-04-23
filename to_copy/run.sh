@@ -25,7 +25,6 @@ ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 DNS_FILTER_PID_FILE="/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
 CERT_SESSION_MAP="${ENCRYPTME_DATA_DIR}/cert_session_map"
-IPSEC_UPDOWN_PID="/tmp/ipsec-updown-daemon.pid"
 
 # helpers
 fail() {
@@ -466,8 +465,7 @@ rundaemon /usr/local/unbound-1.7/sbin/unbound -d -c /usr/local/unbound-1.7/etc/u
 rem "Restoring blacklist filters on restart"
 /usr/bin/pep-filter.sh reload
 
-[ -f "$IPSEC_UPDOWN_PID" ] && rm "$IPSEC_UPDOWN_PID"
-/usr/bin/ipsec-updown.py start || fail "Failed to start IPSEC-UPDOWN daemon"
+/usr/bin/ipsec-updown.py start 
 
 rem "Start-up complete"
 

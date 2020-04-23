@@ -1,43 +1,48 @@
 #!/usr/bin/python
 
+import time
 import sys
-import vici
-from daemon import Daemon
 import subprocess
+import socket
+
+from daemon import Daemon
+import vici
+
 
 class IPsecUpDownDaemon(Daemon):
-    
     def run(self):
-
-        session = vici.Session()
-        ver = session.version()
-        print("connected to {daemon} {version} ({sysname}, {release}, "
-                    "{machine})".format(**ver))
+        for _ in range(10):
+            try:
+                session = vici.Session()
+                break
+            except socket.error, e:
+                time.sleep(1)
+            except Exception as e:
+                sys.exit(1)
 
         for label, event in session.listen(["ike-updown"]):
-            name = next((x for x in iter(event) if x != "up"))
-            up = event.get("up", "") == "yes"
-
             if label == "ike-updown":
+                up = event.get("up", "") == "yes"
                 if up:
                     pass
                 else:
-                    subprocess.check_output(["/usr/bin/send-metric.sh","vpn_session"])
+                    cmd = ["/usr/bin/send-metric.sh","vpn_session"]
+                    subprocess.check_output(cmd)
 
 
 if __name__ == "__main__":
     daemon = IPsecUpDownDaemon('/tmp/ipsec-updown-daemon.pid')
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
-                daemon.start()
+            daemon.start()
         elif 'stop' == sys.argv[1]:
-                daemon.stop()
+            daemon.stop()
         elif 'restart' == sys.argv[1]:
-                daemon.restart()
+            daemon.restart()
         else:
-                print "Unknown command"
-                sys.exit(2)
+            print("Unknown command")
+            sys.exit(2)
         sys.exit(0)
     else:
-        print "usage: %s start|stop|restart" % sys.argv[0]
+        print("usage: %s start|stop|restart" % sys.argv[0])
         sys.exit(2)
