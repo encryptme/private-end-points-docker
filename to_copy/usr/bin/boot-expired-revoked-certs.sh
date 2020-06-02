@@ -28,25 +28,25 @@ get_ipsec_cert_info() {
     touch $IPSEC_CERT_INFO
     touch $SESSION_MAP
     ipsec listcerts | while read line; do
-        output=$(echo $line | grep "subject:" | sed 's/.*subject: //g' | tr -d '"' )
+        output=$(echo "$line" | grep "subject:" | sed 's/.*subject: //g' | tr -d '"' )
         [ -n "$output" ] && {
             record="$output"
         }
 
-        output=$(echo $line | grep "not after")
+        output=$(echo "$line" | grep "not after")
         [ -n "$output" ] && {
-            output=$(echo $line | grep "expired" )
+            output=$(echo "$line" | grep "expired" )
             [ -n "$output" ] && record="$record;EXPIRED" || record="$record;"
         }
 
-        serial=$(echo $line | grep "serial:" | sed 's/.*serial: //g' | tr -d ':' )
+        serial=$(echo "$line" | grep "serial:" | sed 's/.*serial: //g' | tr -d ':' )
         [ -n "$serial" ] && {
-            serial=${serial^^}
+            serial="${serial^^}"
             record="$record;$serial"
-            grep $serial $REVOKED_CERTS && record="$record;REVOKED"
+            grep "$serial" $REVOKED_CERTS && record="$record;REVOKED"
         }
 
-        output=$(echo $line | grep "flags:" | sed 's/.*flags: //g')
+        output=$(echo "$line" | grep "flags:" | sed 's/.*flags: //g')
         if [ "$output" = "clientAuth" ]; then
             echo "$record" >> $IPSEC_CERT_INFO
         fi
@@ -58,7 +58,7 @@ kill_session() {
     local session="$1"
     local openvpn_type="${2:-0}"
 
-    echo killing session: $session
+    echo "killing session: $session"
     sh /usr/bin/boot-cert.sh "$session"
     [ $? -gt 0 ] && fail "Could not kill the session"
 
@@ -72,7 +72,7 @@ kill_session() {
         done
 
         echo "$$" > $LOCKFILE
-        grep -v $session $SESSION_MAP > /tmp/tmp_session_map
+        grep -v "$session" $SESSION_MAP > /tmp/tmp_session_map
         mv -f /tmp/tmp_session_map $SESSION_MAP
         rm -f $LOCKFILE
     fi
@@ -81,19 +81,19 @@ kill_session() {
 
 terminate_expired_certs() {
     cat $SESSION_MAP | while read line; do
-        end_date=$( echo $line | cut -d ',' -f 5 )
+        end_date=$( echo "$line" | cut -d ',' -f 5 )
         if [ -n "$end_date" ]; then
             now_epoch=$( date +%s )
             end_date_epoch=$( date -d "$end_date" +%s )
             if [[ $now_epoch > $end_date_epoch ]]; then
-                session=$( echo $line | cut -d ',' -f 1 )
-                kill_session $session 1
+                session=$( echo "$line" | cut -d ',' -f 1 )
+                kill_session "$session" 1
             fi
         fi  
     done
 
     grep "EXPIRED" $IPSEC_CERT_INFO | while read -r line; do
-        subject=$(echo $line | cut -d ';' -f 1 )
+        subject=$(echo "$line" | cut -d ';' -f 1 )
         if [ -n "$subject" ]; then
             valid=$(grep "$subject" $IPSEC_CERT_INFO | grep -v "EXPIRED")
             [ -z "$valid" ] && {
@@ -108,14 +108,14 @@ terminate_expired_certs() {
 terminate_revoked_certs() {
     cat $REVOKED_CERTS | while read -r line ; do
         # If it exists in the session file kill it
-        session=$(cat $SESSION_MAP | grep $line | awk '{split($0,a,","); print a[1]}')
+        session=$(cat $SESSION_MAP | grep "$line" | awk '{split($0,a,","); print a[1]}')
         if [ -n "$session" ]; then
-            kill_session $session 1
+            kill_session "$session" 1
         fi
     done
 
     grep 'REVOKED' $IPSEC_CERT_INFO | while read -r line ; do
-        subject=$(echo $line | cut -d ';' -f 1 )
+        subject=$(echo "$line" | cut -d ';' -f 1 )
         if [ -n "$subject" ]; then
             valid=$(grep "$subject" $IPSEC_CERT_INFO | grep -v "REVOKED")
             [ -z "$valid" ] && {

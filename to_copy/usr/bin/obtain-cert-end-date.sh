@@ -30,15 +30,15 @@ echo "$$" > $LOCKFILE
 [ "$depth" -eq 0 ] && {
 
     end_date=$(openssl x509 -noout -in "$peer_cert" -enddate | cut -d "=" -f 2)
-    common_name=$(echo $subject | grep -o 'CN=[a-z_0-9]*' | cut -d "=" -f 2)
-    email=$(echo $subject | grep -o 'emailAddress=.*,' | cut -d "=" -f 2 | head -c -2)
+    common_name=$(echo "$subject" | grep -o 'CN=[a-z_0-9]*' | cut -d "=" -f 2)
+    email=$(echo "$subject" | grep -o 'emailAddress=.*,' | cut -d "=" -f 2 | head -c -2)
     serial=$(openssl x509 -noout -in "$peer_cert" -serial | cut -d "=" -f 2)
 
     # Prune old records with the same common name
-    grep -v $common_name $END_DATE_FILE > tmp
+    grep -v "$common_name" $END_DATE_FILE > tmp
     mv -f tmp $END_DATE_FILE
 
-    echo $common_name,$serial,$email,$end_date >> $END_DATE_FILE
+    echo "$common_name,$serial,$email,$end_date" >> $END_DATE_FILE
 }
 
 rm $LOCKFILE
