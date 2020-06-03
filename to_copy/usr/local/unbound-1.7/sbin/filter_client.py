@@ -8,9 +8,11 @@ from time import sleep
 intercept_address = "0.0.0.0"
 sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
+doh_canary_domains = ["use-application-dns.net"]
+doh_provider_domains = ["cloudflare-dns.com"]
 
 
-def check_for_socket():
+def _check_for_socket():
     global sock_exist
     for _ in range(4):
         if os.path.exists(sock_file):
@@ -19,8 +21,7 @@ def check_for_socket():
         sleep(0.25)
 
 
-def is_blocked(name):
-    # block this name, and any subdomains of that name 
+def _is_blocked(name):
     while True:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(sock_file)
@@ -30,7 +31,7 @@ def is_blocked(name):
 
 
 def init(id, cfg):
-    check_for_socket()
+    _check_for_socket()
     return True
 
 
@@ -44,10 +45,28 @@ def inform_super(id, qstate, superqstate, qdata):
 
 def operate(id, event, qstate, qdata):
     if (event == MODULE_EVENT_NEW) or (event == MODULE_EVENT_PASS):
-        name = qstate.qinfo.qname_str.rstrip('.')
 
-        # not blocked or server isn't running? do nothing
-        if not sock_exist or not is_blocked(name):
+        # server isn't running? do nothing
+        if not sock_exist:
+            qstate.ext_state[id] = MODULE_WAIT_MODULE
+            return True
+
+        name = qstate.qinfo.qname_str.rstrip('.')
+        is_blocked, disable_doh = _is_blocked(name)
+
+        if disable_doh:
+            if name in doh_canary_domains:
+                qstate.return_rcode = RCODE_NXDOMAIN
+                qstate.ext_state[id] = MODULE_FINISHED
+                return True            
+
+            if name in doh_provider_domains and not is_blocked:
+                qstate.return_rcode = RCODE_NOERROR
+                qstate.ext_state[id] = MODULE_FINISHED
+                return True   
+
+        # not blocked? do nothing
+        if not is_blocked:
             qstate.ext_state[id] = MODULE_WAIT_MODULE
             return True
 
