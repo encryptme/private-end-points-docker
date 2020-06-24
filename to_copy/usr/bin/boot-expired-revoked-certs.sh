@@ -81,7 +81,7 @@ kill_session() {
 
 terminate_expired_certs() {
     cat $SESSION_MAP | while read line; do
-        end_date=$( echo "$line" | cut -d ',' -f 5 )
+        end_date=$( echo "$line" | cut -d ',' -f 6 )
         if [ -n "$end_date" ]; then
             now_epoch=$( date +%s )
             end_date_epoch=$( date -d "$end_date" +%s )
