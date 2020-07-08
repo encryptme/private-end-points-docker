@@ -59,7 +59,6 @@ def operate(id, event, qstate, qdata):
                 qstate.ext_state[id] = MODULE_FINISHED
                 return True            
 
-            # if name in doh_provider_domains and not is_blocked:
             if is_doh_provider and not is_blocked:
                 qstate.return_rcode = RCODE_NOERROR
                 qstate.ext_state[id] = MODULE_FINISHED
