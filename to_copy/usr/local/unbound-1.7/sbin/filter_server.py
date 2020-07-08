@@ -25,6 +25,21 @@ def delete_socket_path(socket_path):
             raise
 
 
+class DoHPRoviderList():
+    def __init__(self, filters_dir):
+        self.providerlist = set()
+        self.load(filters_dir)
+
+    def load(self, filters_dir):
+        url = os.path.join(filters_dir, "doh_providers")
+        if os.path.exists(url):
+            with open(url) as f:
+                self.providerlist = set(f.read().splitlines())
+
+    def is_provider(self, name):
+        return name in self.providerlist
+
+
 class FilterList():
     def __init__(self, filters_dir):
         """
@@ -71,6 +86,7 @@ class FilterDaemon(Daemon):
 
     def run(self):
         filter_list = FilterList(self.filters_dir)
+        doh_provider_list = DoHPRoviderList(self.filters_dir)
 
         delete_socket_path(self.socket_path)
 
@@ -84,18 +100,22 @@ class FilterDaemon(Daemon):
             uid = pwd.getpwnam("unbound").pw_uid
             gid = grp.getgrnam("unbound").gr_gid
             os.chown(self.socket_path, uid, gid)
-            self._run_loop(sock, filter_list)
+            self._run_loop(sock, filter_list, doh_provider_list)
 
-    def _run_loop(self, sock, filter_list):
+    def _run_loop(self, sock, filter_list, doh_provider_list):
         while True:
             connection, address = sock.accept()
             with closing(connection):
                 data = connection.recv(2048)
                 if data:
                     request = json.loads(data)
-                    is_blocked = filter_list.is_blocked(request['domain'].strip())
+                    domain = request['domain'].strip()
+                    is_blocked = filter_list.is_blocked(domain)
                     disable_doh = filter_list.disable_doh
-                    connection.sendall(json.dumps((is_blocked, disable_doh)))
+                    is_doh_provider = doh_provider_list.is_provider(domain)
+                    connection.sendall(
+                        json.dumps((is_blocked, disable_doh, is_doh_provider))
+                    )
 
 
 if __name__ == "__main__":

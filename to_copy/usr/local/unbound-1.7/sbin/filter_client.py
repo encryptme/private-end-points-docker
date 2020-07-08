@@ -9,7 +9,6 @@ intercept_address = "0.0.0.0"
 sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
 doh_canary_domains = ["use-application-dns.net"]
-doh_provider_domains = ["cloudflare-dns.com"]
 
 
 def _check_for_socket():
@@ -52,7 +51,7 @@ def operate(id, event, qstate, qdata):
             return True
 
         name = qstate.qinfo.qname_str.rstrip('.')
-        is_blocked, disable_doh = _is_blocked(name)
+        is_blocked, disable_doh, is_doh_provider = _is_blocked(name)
 
         if disable_doh:
             if name in doh_canary_domains:
@@ -60,7 +59,8 @@ def operate(id, event, qstate, qdata):
                 qstate.ext_state[id] = MODULE_FINISHED
                 return True            
 
-            if name in doh_provider_domains and not is_blocked:
+            # if name in doh_provider_domains and not is_blocked:
+            if is_doh_provider and not is_blocked:
                 qstate.return_rcode = RCODE_NOERROR
                 qstate.ext_state[id] = MODULE_FINISHED
                 return True   
