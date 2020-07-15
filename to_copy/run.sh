@@ -525,7 +525,11 @@ rem "Configuring and starting strongSwan"
 
 
 rem "Configuring and starting WireGuard"
-setup_wireguard "$ip_addr"
+if modinfo wireguard ; then
+    setup_wireguard "$ip_addr"
+else
+    rem "Missed WireGuard kernel module"
+fi
 
 
 [ ${INIT_ONLY:-0} = "1" ] && {
