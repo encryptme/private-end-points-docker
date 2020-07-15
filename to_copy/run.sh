@@ -36,6 +36,7 @@ ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 DNS_FILTER_PID_FILE="/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
+CERT_SESSION_MAP="${ENCRYPTME_DATA_DIR}/cert_session_map"
 WG_IFACE=${WG_IFACE:-wg0}
 
 
@@ -102,7 +103,7 @@ setup_wireguard() {
     # generate keys and initial configs
     modprobe wireguard  # ensure kernel model is loaded
     mkdir -p "$ENCRYPTME_DIR/wireguard/keys"
-    ( 
+    (
         cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard"
         cd "$ENCRYPTME_DIR/wireguard"
         # ensure our files are not readable by others
@@ -160,6 +161,8 @@ fi
 
 cmd mkdir -p "$ENCRYPTME_DATA_DIR" \
     || fail "Failed to create Encrypt.me data dir '$ENCRYPTME_DATA_DIR'" 5
+
+touch $CERT_SESSION_MAP || fail "Failed to create cert_session_map"
 
 # Inside the container creates /etc/sysctl.d/encryptme.conf with sysctl.conf tuning params.
 if [ "$ENCRYPTME_TUNE_NETWORK" = 1 ]; then
@@ -362,7 +365,7 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
             rm -rf "/etc/letsencrypt/live/$fqdn"
         }
     done
-    
+
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         LE_ARGS=("${LE_ARGS[@]}" --staging)
     fi
@@ -413,6 +416,8 @@ fi
 
 
 # Start services
+chmod -R 644 /etc/cron.d/*
+
 if [ -x /usr/sbin/crond ]; then
     rundaemon crond
 else
@@ -450,7 +455,7 @@ rem "Configuring IPTables, as needed"
         > "$ENCRYPTME_DIR/iptables.rules"
     /sbin/iptables-restore --noflush "$ENCRYPTME_DIR/iptables.rules"
     # prune dupes, except for 'COMMIT' lines
-    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
+    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
 }
 
 
@@ -544,6 +549,8 @@ rundaemon /usr/local/unbound-1.7/sbin/unbound -d \
 
 rem "Restoring blacklist filters on restart"
 /usr/bin/pep-filter.sh reload
+
+/usr/bin/ipsec-updown.py start
 
 rem "Start-up complete"
 

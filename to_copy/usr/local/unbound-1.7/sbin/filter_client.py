@@ -8,9 +8,36 @@ from time import sleep
 intercept_address = "0.0.0.0"
 sock_file = "/usr/local/unbound-1.7/etc/unbound/dns_filter.sock"
 sock_exist = False
+doh_canary_domains = ["use-application-dns.net"]
+doh_provider_domains = [
+    "adblock.mydns.network", "cloudflare-dns.com", "commons.host",
+    "dns-family.adguard.com", "dns-nyc.aaflalo.me", "dns.aa.net.uk",
+    "dns.aaflalo.me", "dns.adguard.com", "dns.alidns.com",
+    "dns.containerpi.com", "dns.digitale-gesellschaft.ch",
+    "dns.dns-over-https.com", "dns.dnshome.de", "dns.dnsoverhttps.net",
+    "dns.flatuslifir.is", "dns.google", "dns.hostux.net", "dns.quad9.net",
+    "dns.rubyfish.cn", "dns.switch.ch", "dns.twnic.tw", "dns10.quad9.net",
+    "dns11.quad9.net", "dns9.quad9.net", "dnsforge.de", "doh-2.seby.io",
+    "doh-de.blahdns.com", "doh-fi.blahdns.com", "doh-jp.blahdns.com",
+    "doh.42l.fr", "doh.applied-privacy.net", "doh.armadillodns.net",
+    "doh.captnemo.in", "doh.centraleu.pi-dns.com", "doh.cleanbrowsing.org",
+    "doh.crypto.sx", "doh.dns.sb", "doh.dnslify.com", "doh.eastas.pi-dns.com",
+    "doh.eastau.pi-dns.com", "doh.eastus.pi-dns.com",
+    "doh.familyshield.opendns.com", "doh.ffmuc.net", "doh.li",
+    "doh.libredns.gr", "doh.northeu.pi-dns.com", "doh.opendns.com",
+    "doh.pi-dns.com", "doh.powerdns.org", "doh.seby.io:8443", "doh.tiar.app",
+    "doh.tiarap.org", "doh.westus.pi-dns.com", "doh.xfinity.com",
+    "dohdot.coxlab.net", "example.doh.blockerdns.com",
+    "family.canadianshield.cira.ca", "family.cloudflare-dns.com",
+    "fi.doh.dns.snopyta.org", "ibksturm.synology.me", "ibuki.cgnat.net",
+    "jcdns.fun", "jp.tiar.app", "jp.tiarap.org", "mozilla.cloudflare-dns.com",
+    "odvr.nic.cz", "ordns.he.net", "private.canadianshield.cira.ca",
+    "protected.canadianshield.cira.ca", "rdns.faelix.net",
+    "resolver-eu.lelux.fi", "security.cloudflare-dns.com",
+    ]
 
 
-def check_for_socket():
+def _check_for_socket():
     global sock_exist
     for _ in range(4):
         if os.path.exists(sock_file):
@@ -19,8 +46,7 @@ def check_for_socket():
         sleep(0.25)
 
 
-def is_blocked(name):
-    # block this name, and any subdomains of that name 
+def _is_blocked(name):
     while True:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(sock_file)
@@ -30,7 +56,7 @@ def is_blocked(name):
 
 
 def init(id, cfg):
-    check_for_socket()
+    _check_for_socket()
     return True
 
 
@@ -44,10 +70,28 @@ def inform_super(id, qstate, superqstate, qdata):
 
 def operate(id, event, qstate, qdata):
     if (event == MODULE_EVENT_NEW) or (event == MODULE_EVENT_PASS):
-        name = qstate.qinfo.qname_str.rstrip('.')
 
-        # not blocked or server isn't running? do nothing
-        if not sock_exist or not is_blocked(name):
+        # server isn't running? do nothing
+        if not sock_exist:
+            qstate.ext_state[id] = MODULE_WAIT_MODULE
+            return True
+
+        name = qstate.qinfo.qname_str.rstrip('.')
+        is_blocked, disable_doh = _is_blocked(name)
+
+        if disable_doh:
+            if name in doh_canary_domains:
+                qstate.return_rcode = RCODE_NXDOMAIN
+                qstate.ext_state[id] = MODULE_FINISHED
+                return True            
+
+            if name in doh_provider_domains and not is_blocked:
+                qstate.return_rcode = RCODE_NOERROR
+                qstate.ext_state[id] = MODULE_FINISHED
+                return True   
+
+        # not blocked? do nothing
+        if not is_blocked:
             qstate.ext_state[id] = MODULE_WAIT_MODULE
             return True
 

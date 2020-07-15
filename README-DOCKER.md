@@ -14,7 +14,7 @@ Usage: build.sh [OPTIONS] [DOCKER ARGS]
 OPTIONS:
 
   -b|--branch REPO   Branch for client and stats repos (default: based on env)
-  -e|--env ENV       Env to build/push (dev, stage, prod) (default: prod)
+  -e|--env ENV       Env to build/push (dev, staging, prod) (default: prod)
   -h|--help          This information
   -t|--tag TAG       Override image tag
   -p|--push          Automatically push to Docker hub
