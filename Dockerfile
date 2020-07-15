@@ -30,8 +30,8 @@ RUN curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo \
     && yum -y -q install wireguard-dkms wireguard-tools \
     && rm -rf /var/cache/yum
 
-LABEL version=0.11.1.wg
-RUN echo "v0.11.1.wg" > /container-version-id
+LABEL version=0.12.0
+RUN echo "v0.12.0" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
