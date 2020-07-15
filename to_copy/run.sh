@@ -101,7 +101,7 @@ setup_wireguard() {
     local dirty=0
     local wg_refresh_args=('wg_iface=wg0')
     # generate keys and initial configs
-    modprobe wireguard  # ensure kernel model is loaded
+    modprobe wireguard || fail "Failed to load WireGuard kernel module" # ensure kernel model is loaded
     mkdir -p "$ENCRYPTME_DIR/wireguard/keys"
     (
         cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard"

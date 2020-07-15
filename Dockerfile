@@ -24,7 +24,7 @@ RUN yum clean all \
         curl \
         socat \
         ipset \
-    && yum -y -q kernel-headers-"$(uname -r)" kernel-devel-"$(uname -r)"
+    && yum -y -q install kernel-headers kernel-devel
 
 RUN curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo \
         https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
