@@ -24,12 +24,10 @@ RUN yum clean all \
         curl \
         socat \
         ipset \
-    && yum -y -q install kernel-headers kernel-devel
-
-RUN curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo \
-        https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
+    && curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
     && yum -y -q install wireguard-dkms wireguard-tools \
-    && rm -rf /var/cache/yum
+    && yum clean all && rm -rf /var/cache/yum
 
 LABEL version=0.12.0
 RUN echo "v0.12.0" > /container-version-id

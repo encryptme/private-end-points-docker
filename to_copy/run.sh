@@ -435,7 +435,7 @@ sysctl -w net.ipv4.ip_forward=1
 for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
     ip_tunnel xfrm4_mode_tunnel xfrm6_mode_tunnel \
     pcrypt xfrm_ipcomp deflate; do
-        modprobe $mod;
+        modprobe -d /lib/host_modules $mod;
 done
 
 # generate IP tables rules
