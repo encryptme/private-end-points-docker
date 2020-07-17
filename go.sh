@@ -198,7 +198,6 @@ server_init() {
         -e DNS_TEST_IP="$dns_test_ip" \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
-        -v /lib/modules:/lib/host_modules \
         --privileged \
         --net host \
         $logging_args \
@@ -237,7 +236,6 @@ server_shell() {
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v /lib/modules:/lib/host_modules \
         --privileged \
         --net host \
         "$eme_img"
@@ -257,7 +255,6 @@ server_run() {
         -e ENCRYPTME_TUNE_NETWORK=$tune_network \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
-        -v /lib/modules:/lib/host_modules \
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --privileged \
