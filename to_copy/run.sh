@@ -123,7 +123,7 @@ EOI
         }
         # if we have an interface, remove it first
         ip link show "$WG_IFACE" &>/dev/null && ip link delete "$WG_IFACE"
-        wg-quick up "$WG_IFACE"
+        wg-quick up "$ENCRYPTME_DIR/wireguard/$WG_IFACE.conf"
     ) || fail "Failed to setup wireguard"
     # register our public key
     encryptme_server update -W $(<"$ENCRYPTME_DIR/wireguard/keys/public") \
