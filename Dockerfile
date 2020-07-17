@@ -26,7 +26,7 @@ RUN yum clean all \
         ipset \
         https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
     && curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
-    && yum -y -q install wireguard-dkms wireguard-tools \
+    && yum -y -q install wireguard-tools \
     && yum clean all && rm -rf /var/cache/yum
 
 LABEL version=0.12.0
