@@ -126,7 +126,7 @@ EOI
         wg-quick up "$ENCRYPTME_DIR/wireguard/$WG_IFACE.conf"
     ) || fail "Failed to setup wireguard"
     # register our public key
-    encryptme_server update -W $(<"$ENCRYPTME_DIR/wireguard/keys/public") \
+    encryptme_server update --wireguard-public-key $(<"$ENCRYPTME_DIR/wireguard/keys/public") \
         || fail "Failed to register WireGuard public key"
     # set peer configuration information based on authorized users/devices
     if [ -n "$ENCRYPTME_API_URL" ]; then
@@ -554,6 +554,7 @@ rundaemon /usr/local/unbound-1.7/sbin/unbound -d \
 rem "Restoring blacklist filters on restart"
 /usr/bin/pep-filter.sh reload
 
+rm -f /tmp/ipsec-updown-daemon.pid
 /usr/bin/ipsec-updown.py start
 
 rem "Start-up complete"

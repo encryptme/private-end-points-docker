@@ -67,14 +67,21 @@ def fetch_eme_conf(base_url, config_file=None, verbose=False):
         cmd.append('--config')
         cmd.append(config_file)
     cmd.append('wireguard')
-    stdout, stderr = run(cmd, verbose=verbose)
-    eme_conf = {}  # maps pubkey to private IP
-    eme_data = json.loads(stdout)
-    for user in eme_data['wireguard_peers']:
-        user_data = eme_data['wireguard_peers'][user]
-        for device in user_data:
-            device_data =  user_data[device]
-            eme_conf[device_data['public_key']] = device_data['private_ipv4_address']
+    try:
+        stdout, stderr = run(cmd, verbose=verbose)
+    except RuntimeError:
+        stdout, eme_conf = '', {}
+    else:
+        eme_conf = {}  # maps pubkey to private IP
+        try:
+            eme_data = json.loads(stdout)
+        except (TypeError, ValueError):
+            eme_data = {}
+        for user in eme_data.get('wireguard_peers'):
+            user_data = eme_data['wireguard_peers'][user]
+            for device in user_data:
+                device_data = user_data[device]
+                eme_conf[device_data['public_key']] = device_data['private_ipv4_address']
     return stdout, eme_conf
 
 
