@@ -148,7 +148,7 @@ def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False)
     if verbose:
         rem("Removing %d old peers" % len(pubkeys_old))
     [
-        wg_down(wg_iface, wg_conf['peers'][pubkey], dryrun)
+        wg_down(wg_iface, wg_conf[pubkey], dryrun)
         for pubkey in pubkeys_old
     ]
     # * which peers to possibly change the IP address of
