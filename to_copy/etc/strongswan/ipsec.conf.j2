@@ -29,7 +29,7 @@ conn cloak
     leftcert = cloak.pem
     {% endif -%}
     leftsendcert = always
-    leftsubnet = {% if data.routes %}{{ data.routes|join(', ') }}{% else %}0.0.0.0/0{% endif %}
+    leftsubnet = {% if data.target.routes %}{{ data.target.routes|join(', ') }}{% else %}0.0.0.0/0{% endif %}
 
     # rightca is the distinguished name of the CA that signs client
     # certificates. This narrows the set of valid client certificates we'll
