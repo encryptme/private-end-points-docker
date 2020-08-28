@@ -112,3 +112,15 @@ EXAMPLES:
     # run the newly initialized server
     ./go.sh run
 ```
+
+
+# WIREGUARD PROTOCOL
+
+Optionally support for the WIREGUARD protocol can be enabled by installing the 
+wireguard kernel module on the target host.
+
+```
+sudo yum install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+sudo yum install yum-plugin-elrepo
+sudo yum install kmod-wireguard
+```
