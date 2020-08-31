@@ -120,7 +120,11 @@ Optionally support for the WIREGUARD protocol can be enabled by installing the
 wireguard kernel module on the target host.
 
 ```
+# Specific for CentOS 7
+
 sudo yum install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
 sudo yum install yum-plugin-elrepo
 sudo yum install kmod-wireguard
 ```
+
+Instructions to install WIREGUARD on multiple operating systems can be found in the [official documentation](https://www.wireguard.com/install/).
