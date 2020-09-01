@@ -429,6 +429,8 @@ esac
             || fail "Failed to pull WatchTower image '$wt_image' from Docker Hub"
     }
 
+    modinfo wireguard &> /dev/null || rem "Missed wireguard kernel module, therefore protocol is disabled"
+
     # get auth/server info if needed
     rem "interactively collecting any required missing params"
     collect_args
