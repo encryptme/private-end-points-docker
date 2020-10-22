@@ -1,4 +1,11 @@
-#!/usr/bin/python
+"""
+Unbound client script - Talks to a daemon powered by "/opt/dns-filter/server.py"
+to do DNS filtering.
+
+Requires Python 2.7 and uses a version of python included in Unbound:
+
+/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages
+"""
 
 import socket
 import json

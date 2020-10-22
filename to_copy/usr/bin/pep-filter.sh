@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -u
 
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
@@ -57,7 +57,7 @@ fail() {
 
 
 reload_domains() {
-    local cmd="/usr/local/unbound-1.7/sbin/filter_server.py"
+    local cmd="/opt/dns-filter/server.py"
     "$cmd" stop
     "$cmd" start
 }

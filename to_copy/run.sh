@@ -289,7 +289,7 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
             rm -rf "/etc/letsencrypt/live/$fqdn"
         }
     done
-    
+
     if [ "${LETSENCRYPT_STAGING:-}" = 1 ]; then
         LE_ARGS=("${LE_ARGS[@]}" --staging)
     fi
@@ -378,7 +378,7 @@ rem "Configuring IPTables, as needed"
     cat /etc/encryptme/iptables.host.rules /etc/encryptme/iptables.eme.rules > /etc/encryptme/iptables.rules
     /sbin/iptables-restore --noflush /etc/encryptme/iptables.rules
     # prune dupes, except for 'COMMIT' lines
-    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
+    /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
 }
 
 
@@ -428,21 +428,25 @@ STRONGSWAN_LOGLEVEL=-1
 [ "${ENCRYPTME_LOGGING:-}" = 1 ] && STRONGSWAN_LOGLEVEL=2
 
 rem "Configuring and starting strongSwan"
+
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/strongswan/ipsec.conf.j2 \
     -o /etc/strongswan/ipsec.conf \
     -v letsencrypt=$LETSENCRYPT
+
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/strongswan/ipsec.secrets.j2 \
     -o /etc/strongswan/ipsec.secrets \
     -v letsencrypt=$LETSENCRYPT
+
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/strongswan/strongswan.conf.j2 \
     -o /etc/strongswan/strongswan.conf \
     -v loglevel=$STRONGSWAN_LOGLEVEL
+
 /usr/sbin/ipsec start
 
 
@@ -450,6 +454,7 @@ rem "Configuring and starting strongSwan"
     rem "Init complete; run './go.sh run' to start"
     exit 0
 }
+
 
 [ $ENCRYPTME_STATS = 1 -a -n "$ENCRYPTME_STATS_SERVER" ] && {
     rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER"
@@ -459,19 +464,16 @@ rem "Configuring and starting strongSwan"
 
 # the DNS filter must be running before unbound
 [ -f "$DNS_FILTER_PID_FILE" ] && rm "$DNS_FILTER_PID_FILE"
-/usr/local/unbound-1.7/sbin/filter_server.py start \
-    || fail "Failed to start DNS filter"
-
-rundaemon /usr/local/unbound-1.7/sbin/unbound -d -c /usr/local/unbound-1.7/etc/unbound/unbound.conf &
-
-rem "Restoring blacklist filters on restart"
+rem "Restoring content-type filters and starting filter server"
 /usr/bin/pep-filter.sh reload
 
-/usr/bin/ipsec-updown.py start 
+PYTHONPATH="$PYTHONPATH:/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages" \
+    rundaemon /usr/local/unbound-1.7/sbin/unbound -d \
+        -c /usr/local/unbound-1.7/etc/unbound/unbound.conf &
 
+
+# since we don't have a good single foreground process... we just spin!
 rem "Start-up complete"
-
 while true; do
-    date
     sleep 300
 done
