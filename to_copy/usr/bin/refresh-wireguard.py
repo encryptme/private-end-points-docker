@@ -120,7 +120,6 @@ def wg_down(wg_iface, wg_peer, dryrun=False, verbose=False):
     run(['ip', '-4', 'route', 'del', wg_peer.allowed_ips, 'dev', wg_iface], dryrun, verbose)
 
 
-@pidfile.PIDFile('/tmp/refresh-wireguard.pid')
 def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False):
     '''
     Fetches data from Encrypt.me, parses local WireGuard interface
@@ -129,51 +128,52 @@ def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False)
     '''
     # get the config data from Encrypt.me and from what is on the server now
     # then, using wg interface data we can decide:
-    if dryrun:
-        rem("*** DRY RUN (no changes will be made) ***")
-    eme_resp_data, eme_conf = fetch_eme_conf(base_url, config_file, verbose=verbose)
-    if verbose:
-        rem("Found %d peers from Encrypt.me; saving to %s" % (
-            len(eme_conf), PEERS_FILE
-        ))
-    if not dryrun:
-        with open(PEERS_FILE, 'w') as peers_file:
-            peers_file.write(eme_resp_data)
-    wg_conf = fetch_wg_conf(wg_iface, verbose=verbose)
-    if verbose:
-        rem("Found %d local WireGuard peers" % (len(wg_conf)))
-    eme_pubkeys = frozenset(eme_conf.keys())
-    wg_pubkeys = frozenset(wg_conf.keys())
+    with pidfile.PIDFile('/tmp/refresh-wireguard.pid'):
+        if dryrun:
+            rem("*** DRY RUN (no changes will be made) ***")
+        eme_resp_data, eme_conf = fetch_eme_conf(base_url, config_file, verbose=verbose)
+        if verbose:
+            rem("Found %d peers from Encrypt.me; saving to %s" % (
+                len(eme_conf), PEERS_FILE
+            ))
+        if not dryrun:
+            with open(PEERS_FILE, 'w') as peers_file:
+                peers_file.write(eme_resp_data)
+        wg_conf = fetch_wg_conf(wg_iface, verbose=verbose)
+        if verbose:
+            rem("Found %d local WireGuard peers" % (len(wg_conf)))
+        eme_pubkeys = frozenset(eme_conf.keys())
+        wg_pubkeys = frozenset(wg_conf.keys())
 
-    # --- we need to determine: ---
-    # * which peers to remove
-    pubkeys_old = wg_pubkeys - eme_pubkeys
-    if verbose:
-        rem("Removing %d old peers" % len(pubkeys_old))
-    [
-        wg_down(wg_iface, wg_conf[pubkey], dryrun)
-        for pubkey in pubkeys_old
-    ]
-    # * which peers to possibly change the IP address of
-    pubkeys_same = wg_pubkeys & eme_pubkeys
-    changed = 0
-    for pubkey in pubkeys_same:
-        eme_ipv4 = eme_conf[pubkey]
-        wg_ipv4 = wg_conf[pubkey].allowed_ips
-        if eme_ipv4 != wg_ipv4:
-            changed += 1
-            wg_down(wg_iface, wg_conf[pubkey], dryrun, verbose)
+        # --- we need to determine: ---
+        # * which peers to remove
+        pubkeys_old = wg_pubkeys - eme_pubkeys
+        if verbose:
+            rem("Removing %d old peers" % len(pubkeys_old))
+        [
+            wg_down(wg_iface, wg_conf[pubkey], dryrun)
+            for pubkey in pubkeys_old
+        ]
+        # * which peers to possibly change the IP address of
+        pubkeys_same = wg_pubkeys & eme_pubkeys
+        changed = 0
+        for pubkey in pubkeys_same:
+            eme_ipv4 = eme_conf[pubkey]
+            wg_ipv4 = wg_conf[pubkey].allowed_ips
+            if eme_ipv4 != wg_ipv4:
+                changed += 1
+                wg_down(wg_iface, wg_conf[pubkey], dryrun, verbose)
+                wg_up(wg_iface, pubkey, eme_conf[pubkey], dryrun, verbose)
+        if verbose:
+            rem("Changed %d peers to new IP addresses" % (changed))
+        # * which peers to add
+        pubkeys_new = eme_pubkeys - wg_pubkeys
+        if verbose:
+            rem("Adding %d new peers" % len(pubkeys_new))
+        [
             wg_up(wg_iface, pubkey, eme_conf[pubkey], dryrun, verbose)
-    if verbose:
-        rem("Changed %d peers to new IP addresses" % (changed))
-    # * which peers to add
-    pubkeys_new = eme_pubkeys - wg_pubkeys
-    if verbose:
-        rem("Adding %d new peers" % len(pubkeys_new))
-    [
-        wg_up(wg_iface, pubkey, eme_conf[pubkey], dryrun, verbose)
-        for pubkey in pubkeys_new
-    ]
+            for pubkey in pubkeys_new
+        ]
 
 
 #
