@@ -34,6 +34,7 @@ RUN echo "v0.12.0" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
+    pip install --upgrade setuptools && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
     pip install sander-daemon && \
     pip install vici && \
