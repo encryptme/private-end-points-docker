@@ -7,6 +7,8 @@ import os
 import re
 import sys
 
+import pidfile
+
 
 WGPeer = namedtuple('WGPeer', [
     'public_key', 'preshared_key', 'endpoint', 'allowed_ips',
@@ -118,6 +120,7 @@ def wg_down(wg_iface, wg_peer, dryrun=False, verbose=False):
     run(['ip', '-4', 'route', 'del', wg_peer.allowed_ips, 'dev', wg_iface], dryrun, verbose)
 
 
+@pidfile.PIDFile('/tmp/refresh-wireguard.pid')
 def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False):
     '''
     Fetches data from Encrypt.me, parses local WireGuard interface
@@ -185,7 +188,7 @@ if __name__ == '__main__':
     args = {
         'wg_iface': 'wg0',
         'config_file': None,
-        'base_url': 'https://app.encrypt.me/',
+        'base_url': os.environ['ENCRYPTME_API_URL'],
         'dryrun': False,
         'verbose': False,
     }
@@ -198,4 +201,7 @@ if __name__ == '__main__':
         if arg_val.isdigit():
             arg_val = int(arg_val)
         args[arg_name] = arg_val
-    main(**args)
+    try:
+        main(**args)
+    except pidfile.AlreadyRunningError:
+        sys.stdout.write("%s already running." % os.path.basename(__file__))

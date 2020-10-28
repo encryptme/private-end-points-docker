@@ -37,6 +37,7 @@ RUN pip install --upgrade pip && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
     pip install sander-daemon && \
     pip install vici && \
+    pip install pidfile && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
 ARG repo_branch=${repo_branch:-master}

@@ -2,4 +2,5 @@
 */5 * * * * root /bin/refresh-crls.sh
 10 0 1,8,15,22 * * root /usr/bin/renew-cert.sh
 */10 * * * * root /usr/bin/boot-expired-revoked-certs.sh
+0 * * * * root sleep $(($RANDOM % 300)); /usr/bin/refresh-wireguard.py
 
