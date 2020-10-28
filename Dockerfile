@@ -1,20 +1,44 @@
 FROM centos:7
 
-RUN yum clean all && \
-    yum -y -q update && \
-    yum -y -q install epel-release && yum -y update && \
-    yum -y -q install cronie python-pip python34 python-devel python34-devel python34-pip git jq gcc bind-utils && \
-    yum -y -q install openvpn strongswan kmod letsencrypt vim curl socat ipset && \
-    rm -rf /var/cache/yum
+RUN yum clean all \
+    && yum -y -q update \
+    && yum -y -q install epel-release \
+    && yum -y update \
+    && yum -y -q install \
+        cronie \
+        python-pip \
+        python34 \
+        python-devel \
+        python34-devel \
+        python34-pip \
+        git \
+        jq \
+        gcc \
+        bind-utils \
+    && yum -y -q install \
+        openvpn \
+        strongswan \
+        kmod \
+        letsencrypt \
+        vim \
+        curl \
+        socat \
+        ipset \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
+    && curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
+    && yum -y -q install wireguard-tools \
+    && yum clean all && rm -rf /var/cache/yum
 
-LABEL version=0.11.2
-RUN echo "v0.11.2" > /container-version-id
+LABEL version=0.12.0
+RUN echo "v0.12.0" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip install --upgrade pip && \
+    pip install --upgrade setuptools && \
     pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
     pip install sander-daemon && \
     pip install vici && \
+    pip install python-pidfile && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
 ARG repo_branch=${repo_branch:-master}

@@ -100,7 +100,7 @@ EXAMPLES:
     # launch an auto-updating image with health reporting using the official
     # image and ensure our AWS/DO public IP matches our FQDN
     ./go.sh init -S -U -P -D
-    
+
     # run the newly initialized server
     ./go.sh run
 
@@ -167,7 +167,7 @@ docker_cleanup() {
     fi
     local container="$1"
     local running=$(cmd docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null)
-    rem "Container '$container' has running=$running" 
+    rem "Container '$container' has running=$running"
     [ $do_restart -eq 1 -a "$running" = "true" ] &&
         (cmd docker kill "$container" ||
             fail "Failed to kill running container $container")
@@ -198,7 +198,7 @@ server_init() {
         -e DNS_TEST_IP="$dns_test_ip" \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
-        -v /lib/modules:/lib/modules \
+        -v /lib/modules:/lib/modules:ro \
         --privileged \
         --net host \
         $logging_args \
@@ -235,10 +235,9 @@ server_shell() {
         -e ENCRYPTME_API_URL="$api_url" \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
-        -v /lib/modules:/lib/modules \
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v /lib/modules:/lib/modules \
+        -v /lib/modules:/lib/modules:ro \
         --privileged \
         --net host \
         "$eme_img"
@@ -258,7 +257,7 @@ server_run() {
         -e ENCRYPTME_TUNE_NETWORK=$tune_network \
         -v "$conf_dir:/etc/encryptme" \
         -v "$conf_dir/letsencrypt:/etc/letsencrypt" \
-        -v /lib/modules:/lib/modules \
+        -v /lib/modules:/lib/modules:ro \
         -v /proc:/hostfs/proc:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --privileged \
@@ -289,7 +288,7 @@ arg_count=0
 while [ $# -gt 0 ]; do
     arg="$1"
     shift
-    case "$arg" in 
+    case "$arg" in
         --dryrun|dry-run|-d)
             dryrun=1
             ;;
@@ -430,13 +429,11 @@ esac
             || fail "Failed to pull WatchTower image '$wt_image' from Docker Hub"
     }
 
+    modinfo wireguard &> /dev/null || rem "Missed wireguard kernel module, therefore protocol is disabled"
+
     # get auth/server info if needed
     rem "interactively collecting any required missing params"
     collect_args
-    
-    #load sysctl configuration
-#    cp "$BASE_DIR/configs/sysctl.conf" /etc
-#    /sbin/sysctl -p /etc/sysctl.conf
 }
 
 
