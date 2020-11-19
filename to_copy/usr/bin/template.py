@@ -11,6 +11,8 @@ import socket
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--source', help='source template file',
                     required=True, type=str)
+parser.add_argument('-x', '--extra', help='extra source template files; added to doc based on filename',
+                    type=str, action='append', default=[])
 parser.add_argument('-o', '--out', help='output file',
                     required=True, type=str)
 parser.add_argument('-d', '--data', help='json data file',
@@ -34,17 +36,29 @@ def apply_template(data, source_file):
     return template.render(**data)
 
 
+# get our source data to start
+data = None
 with open(args.data) as data_file:
     data = json.load(data_file)
-    data = dict(cloak_server=data, ip=ip)
-    if args.var:
-        for var in args.var:
-            splitted = var.split("=", 1)
-            if len(splitted) == 1:
-                data[splitted[0]] = ''
-            else:
-                data[splitted[0]] = splitted[1]
-    with open(args.source) as source_file:
-        content = apply_template(data, source_file)
-        with open(args.out, "w") as dest_file:
-            dest_file.write(content)
+    data = dict(data=data, ip=ip)
+
+# extend with any extra data
+for extra in args.extra:
+    with open(extra) as data_file:
+        extra_name = extra.split('.')[0].split('/')[-1]
+        data[extra_name] = json.load(data_file)
+
+# plus any one-off vars from the command line
+if args.var:
+    for var in args.var:
+        splitted = var.split("=", 1)
+        if len(splitted) == 1:
+            data[splitted[0]] = ''
+        else:
+            data[splitted[0]] = splitted[1]
+
+# finally, apply this all to the source template
+with open(args.source) as source_file:
+    content = apply_template(data, source_file)
+    with open(args.out, "w") as dest_file:
+        dest_file.write(content)

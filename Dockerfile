@@ -23,23 +23,32 @@ RUN yum clean all && \
         curl \
         socat \
         ipset \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
         && \
+    curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo \
+        https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo && \
+    yum -y -q install wireguard-tools && \
+    yum clean all && \
     rm -rf /var/cache/yum
 
-LABEL version=0.11.2
-RUN echo "v0.11.2" > /container-version-id
+LABEL version=0.12.2
+RUN echo "v0.12.2" > /container-version-id
 
 ARG repo_branch=${repo_branch:-master}
 RUN pip3.6 install --upgrade pip && \
+    pip3.6 install --upgrade setuptools && \
     pip3.6 install \
         "git+https://github.com/encryptme/private-end-points.git@$repo_branch" \
         jinja2 \
+        python-pidfile \
         && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
 ARG repo_branch=${repo_branch:-master}
-ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip
-RUN pip3.6 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
+ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip \
+        /tmp/encryptme-metrics.zip
+RUN pip3.6 install /tmp/encryptme-metrics.zip && \
+    rm /tmp/encryptme-metrics.zip
 
 ARG build_time=${build_time:-x}
 ADD to_extract /tmp/to_extract

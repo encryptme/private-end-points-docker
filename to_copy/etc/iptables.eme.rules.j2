@@ -11,7 +11,7 @@ COMMIT
 
 *filter
 
-{% if cloak_server.target.is_managed %}
+{% if data.target.is_managed %}
 # We never want to be open to the world, but for self-hosted we must trust the
 # user to set ACLs right... lest we lock them out unexpectedly
 :INPUT DROP
@@ -19,6 +19,8 @@ COMMIT
 
 -A FORWARD -o tun+ -j ACCEPT
 -A FORWARD -i tun+ -j ACCEPT
+-A FORWARD -o wg+ -j ACCEPT
+-A FORWARD -i wg+ -j ACCEPT
 
 # ENCRYPTME
 :ENCRYPTME - [0:0]
@@ -37,19 +39,20 @@ COMMIT
 -I ENCRYPTME -p icmp --icmp-type echo-request -m recent --update --seconds 5 --hitcount 10 -j DROP
 -A ENCRYPTME -p icmp -j ACCEPT
 
-{% if cloak_server.target.is_managed %}
+{% if data.target.is_managed %}
 # SSH - trust in external ACLs to lock SSH down properly
 -A ENCRYPTME -p tcp -m tcp --dport 22 -j ACCEPT
 {% endif %}
 
 # OpenVPN
-{% for config in cloak_server.target.openvpn %}
+{% for config in data.target.openvpn %}
 -A ENCRYPTME -p {{config.proto}} --dport {{config.port}} -j ACCEPT
 {% endfor %}
 
 # IPsec, isakmp
 -A ENCRYPTME -p udp -m udp --dport 500  -j ACCEPT
 -A ENCRYPTME -p udp -m udp --dport 4500 -j ACCEPT
+-A ENCRYPTME -p udp -m udp --dport 51820 -j ACCEPT
 
 # DNS through the tunnel
 -A ENCRYPTME -s 100.64.0.0/10 -p udp -m udp --dport 53 -j ACCEPT

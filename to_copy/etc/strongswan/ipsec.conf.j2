@@ -21,7 +21,7 @@ conn cloak
     # leftid must match both the "Remote ID" requested by the client and the
     # server certificate. To keep things simple, we just use the server FQDN.
     left = %defaultroute
-    leftid = {{cloak_server.target.ikev2[0].server_id}}
+    leftid = {{data.target.ikev2[0].server_id}}
     leftauth = pubkey
     {% if letsencrypt -%}
     leftcert = letsencrypt.pem
@@ -29,7 +29,7 @@ conn cloak
     leftcert = cloak.pem
     {% endif -%}
     leftsendcert = always
-    leftsubnet = 0.0.0.0/0
+    leftsubnet = {% if data.target.routes %}{{ data.target.routes|join(', ') }}{% else %}0.0.0.0/0{% endif %}
 
     # rightca is the distinguished name of the CA that signs client
     # certificates. This narrows the set of valid client certificates we'll
@@ -37,7 +37,7 @@ conn cloak
     right = %any
     rightid = %
     rightauth = pubkey
-    rightca = "{{cloak_server.target.ikev2[0].client_ca_dn}}"
+    rightca = "{{data.target.ikev2[0].client_ca_dn}}"
     rightsourceip = 100.64.128.0/18
 
     auto = add

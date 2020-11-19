@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# ** The belly of the beast **
+#
+# - registers with Encrypt.me and fetches configuration information
+# - stores everything in $ENCRYPTME_DIR
+# - setups up SSL, VPN daemons, etc
+# - configures network: uses 100.64.0.0/10 for client connections:
+#   - openvpn udp   = 100.64.0.0   > 100.64.63.255  (/18)
+#   - openvpn tcp   = 100.64.64.0  > 100.64.127.255 (/18)
+#   - ipsec udp     = 100.64.128.0 > 100.64.191.255 (/18)
+#   - wireguard udp = 100.96.0.0   > 100.127.255.255 (/11)
+
+
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
@@ -25,8 +37,11 @@ ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
 DNS_FILTER_PID_FILE="/usr/local/unbound-1.7/etc/unbound/dns-filter.pid"
 CERT_SESSION_MAP="${ENCRYPTME_DATA_DIR}/cert_session_map"
+WG_IFACE=${WG_IFACE:-wg0}
+
 
 # helpers
+# ----------------------------------------------------------------------------
 fail() {
     echo "${1:-failed}" >&1
     exit ${2:-1}
@@ -61,6 +76,69 @@ encryptme_server() {
     CONTAINER_VERSION="$cont_ver" cmd cloak-server "${args[@]}"
 }
 
+query_a() {
+    local host="$1"
+    local tries=0
+    local dns_resp
+    local cnames=0
+
+    # query and follow CNAMEs until we get an A record
+    dns_resp=$(dig +short +trace "$host" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
+    while echo $dns_resp | grep -q '^CNAME'; do
+        dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
+        let cnames+=1
+        [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
+    done
+    echo "$dns_resp"
+}
+
+
+# VPN protocol setup
+# ----------------------------------------------------------------------------
+setup_wireguard() {
+    local ip_addr="$1"
+    local conf="$ENCRYPTME_DATA_DIR/server.json"
+    local dirty=0
+    local wg_refresh_args=('wg_iface=wg0')
+    # generate keys and initial configs
+    modprobe wireguard || fail "Failed to load WireGuard kernel module" # ensure kernel model is loaded
+    mkdir -p "$ENCRYPTME_DIR/wireguard/keys"
+    (
+        cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard"
+        cd "$ENCRYPTME_DIR/wireguard"
+        # ensure our files are not readable by others
+        umask 077
+        [ -s keys/private -a -s keys/public ] || {
+            wg genkey | tee keys/private | wg pubkey | tee keys/public
+            dirty=1
+        }
+        # if we got a new key or we have no config at all... write one
+        [ $dirty -eq 1 -o \! -s $WG_IFACE.conf ] && {
+            cat > $WG_IFACE.conf <<EOI
+[Interface]
+PrivateKey = $(<keys/private)
+Address = $ip_addr/32
+ListenPort = 51820
+EOI
+        }
+        # if we have an interface, remove it first
+        ip link show "$WG_IFACE" &>/dev/null && ip link delete "$WG_IFACE"
+        wg-quick up "$ENCRYPTME_DIR/wireguard/$WG_IFACE.conf"
+    ) || fail "Failed to setup wireguard"
+    # register our public key
+    encryptme_server update --wireguard-public-key $(<"$ENCRYPTME_DIR/wireguard/keys/public") \
+        || fail "Failed to register WireGuard public key"
+    # set peer configuration information based on authorized users/devices
+    if [ -n "$ENCRYPTME_API_URL" ]; then
+        wg_refresh_args+=("base_url=$ENCRYPTME_API_URL")
+    fi
+    refresh-wireguard.py "${wg_refresh_args[@]}" \
+        || fail "Failed to set initial WireGuard peers"
+}
+
+
+# start of the fun!
+# ----------------------------------------------------------------------------
 # debug mode, if requested
 [ $VERBOSE -gt 0 ] && set -x
 
@@ -146,7 +224,7 @@ else
         fail "Not on a TTY and missing env vars: $missing" 3
     fi
 
-    # creates /etc/encryptme.conf
+    # creates encryptme.conf
     if encryptme_server register "$@"; then
         rem "Registered"
     else
@@ -221,7 +299,7 @@ FQDN=${FQDNS%% *}
 # TODO: Note this is only valid for AWS http://169.254.169.254 is at Amazon
 DNSOK=1
 DNS=0.0.0.0
-if [ $DNS_CHECK -ne 0 ]; then
+if [ ${DNS_CHECK:-0} -ne 0 ]; then
     EXTIP=$(curl --connect-timeout 5 -s http://169.254.169.254/latest/meta-data/public-ipv4)
     for hostname in $FQDNS; do
         rem "Checking DNS for FQDN '$hostname'"
@@ -251,17 +329,15 @@ if [ -n "$DNS_TEST_IP" ]; then
     fqdn_pointed=0
     # try up to 2 minutes for it to work
     while [ $tries -lt 12 -a $fqdn_pointed -eq 0 ]; do
-        dns_resp=$(dig +short +trace "$FQDN" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
-        while echo $dns_resp | grep -q '^CNAME'; do
-            dns_resp=$(dig +short +trace "$(echo "$dns_resp" | awk '{print $2}')" 2>/dev/null | grep -E '^(A|CNAME) ' | tail -1)
-            let cnames+=1
-            [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
-        done
+        dns_resp=$(query_a "$FQDN")
         echo "$dns_resp" | grep "^A $DNS_TEST_IP " && fqdn_pointed=1 || sleep 10
         let tries+=1
     done
     [ $fqdn_pointed -eq 0 ] && fail "The FQDN '$FQDN' is still not pointed correctly"
 fi
+# and finally capture our public IP address for configs
+ip_addr=$(query_a "$FQDN" | awk '{print $2}')
+
 
 # Perform letsencrypt if not disabled
 # Also runs renewals if a cert exists
@@ -350,12 +426,12 @@ fi
 
 
 # Silence warning
-chmod 700 /etc/encryptme/pki/cloak.pem
+chmod 700 "$ENCRYPTME_DIR/pki/cloak.pem"
 
 # Ensure networking is setup properly
 sysctl -w net.ipv4.ip_forward=1
 
-# Host needs various modules loaded..
+# IPsec needs various modules loaded from host
 for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
     ip_tunnel xfrm4_mode_tunnel xfrm6_mode_tunnel \
     pcrypt xfrm_ipcomp deflate; do
@@ -367,16 +443,17 @@ rem "Configuring IPTables, as needed"
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/iptables.eme.rules.j2 \
-    -o /etc/encryptme/iptables.eme.rules \
+    -o "$ENCRYPTME_DIR/iptables.eme.rules" \
     -v ipaddress=$DNS
 
 # play nicely with existing rules: if our chain is already present do nothing
 /sbin/iptables -L ENCRYPTME &>/dev/null || {
     rem "Configuring the ENCRYPTME chain"
     # merge host rules w/ our own
-    /sbin/iptables-save > /etc/encryptme/iptables.host.rules
-    cat /etc/encryptme/iptables.host.rules /etc/encryptme/iptables.eme.rules > /etc/encryptme/iptables.rules
-    /sbin/iptables-restore --noflush /etc/encryptme/iptables.rules
+    /sbin/iptables-save > "$ENCRYPTME_DIR/iptables.host.rules"
+    cat "$ENCRYPTME_DIR/iptables.host.rules" "$ENCRYPTME_DIR/iptables.eme.rules" \
+        > "$ENCRYPTME_DIR/iptables.rules"
+    /sbin/iptables-restore --noflush "$ENCRYPTME_DIR/iptables.rules"
     # prune dupes, except for 'COMMIT' lines
     /sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore
 }
@@ -402,6 +479,7 @@ while [ ! -z "$conf" ]; do
     echo "$conf" > "$ENCRYPTME_DATA_DIR/openvpn.$n.json"
     /bin/template.py \
         -d "$ENCRYPTME_DATA_DIR/openvpn.$n.json" \
+        -x "$ENCRYPTME_DATA_DIR/server.json" \
         -s /etc/openvpn/openvpn.conf.j2 \
         -o /etc/openvpn/server-$n.conf \
         -v logging=$ENCRYPTME_LOGGING
@@ -448,6 +526,14 @@ rem "Configuring and starting strongSwan"
     -v loglevel=$STRONGSWAN_LOGLEVEL
 
 /usr/sbin/ipsec start
+
+
+rem "Configuring and starting WireGuard"
+if modinfo wireguard ; then
+    setup_wireguard "$ip_addr"
+else
+    rem "Missed WireGuard kernel module"
+fi
 
 
 [ ${INIT_ONLY:-0} = "1" ] && {
