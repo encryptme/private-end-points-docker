@@ -20,7 +20,7 @@ PEERS_FILE = EME_DIR + '/peers.json'
 
 
 def rem(msg, color='33'):
-    sys.stdout.write('m#m %s\n' % (color, color, msg))
+    sys.stdout.write(f'\033[1;{color}m#\033[0;{color}m {msg}\033[0m\n')
 
 
 def run(cmd, dryrun=False, verbose=False):
@@ -40,7 +40,7 @@ def run(cmd, dryrun=False, verbose=False):
             cmd[0],
             stderr
         ))
-    return stdout, stderr
+    return stdout.decode('utf-8'), stderr.decode('utf-8')
 
 
 def fetch_eme_conf(base_url, config_file=None, verbose=False):

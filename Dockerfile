@@ -1,5 +1,6 @@
 FROM centos:7
 
+# Core system dependencies
 RUN yum clean all && \
     yum -y -q update && \
     yum -y -q install epel-release && \
@@ -31,31 +32,38 @@ RUN yum clean all && \
     yum clean all && \
     rm -rf /var/cache/yum
 
+# System configuration
+RUN useradd -s /sbin/nologin unbound
+
+# Latest python packaging tools
+RUN python3.6 -m pip install --upgrade --no-cache-dir pip && \
+    python3.6 -m pip install --upgrade --no-cache-dir setuptools
+
+# Container versioning for release tracking
 LABEL version=0.12.2
 RUN echo "v0.12.2" > /container-version-id
 
+# Generic files to extract/copy into the repo
+ADD to_extract /tmp/to_extract
+RUN tar zxf /tmp/to_extract/unbound-1.7.tar.gz -C /usr/local/
+RUN rm -rf /tmp/to_extract
+ADD to_copy/ /
+
+# Project specific dependencies
+ARG build_time=${build_time:-x}
 ARG repo_branch=${repo_branch:-master}
-RUN pip3.6 install --upgrade pip && \
-    pip3.6 install --upgrade setuptools && \
-    pip3.6 install \
+RUN python3.6 -m pip install --no-cache-dir \
         "git+https://github.com/encryptme/private-end-points.git@$repo_branch" \
         jinja2 \
         python-pidfile \
         && \
     ln -s /usr/sbin/strongswan /usr/sbin/ipsec
 
+# Python stats daemon for health monitoring
 ARG repo_branch=${repo_branch:-master}
 ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip \
         /tmp/encryptme-metrics.zip
-RUN pip3.6 install /tmp/encryptme-metrics.zip && \
+RUN python3.6 -m pip install --no-cache-dir /tmp/encryptme-metrics.zip && \
     rm /tmp/encryptme-metrics.zip
-
-ARG build_time=${build_time:-x}
-ADD to_extract /tmp/to_extract
-RUN tar zxf /tmp/to_extract/unbound-1.7.tar.gz -C /usr/local/
-RUN rm -rf /tmp/to_extract
-ADD to_copy/ /
-
-RUN useradd -s /sbin/nologin unbound
 
 ENTRYPOINT ["/run.sh"]
