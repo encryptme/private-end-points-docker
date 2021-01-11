@@ -15,6 +15,9 @@
 BASE_DIR=$(cd $(dirname "$0") && pwd -P)
 SCRIPT_NAME=$(basename "$0")
 
+# setting this avoids unnecessary use of surrogates that can break server registration
+export LANG=en_US.UTF-8
+
 # main conf opts
 ENCRYPTME_DIR="${ENCRYPTME_DIR:-/etc/encryptme}"
 ENCRYPTME_API_URL="${ENCRYPTME_API_URL:-}"

@@ -23,7 +23,7 @@ push "dhcp-option DNS {% if data.proto=='udp' %}100.64.0.1{% else %}100.64.64.1{
 
 remote-cert-eku "TLS Web Client Authentication"
 
-keepalive 10 120
+keepalive 10 30
 {% if data.proto == 'udp' %}
 push "explicit-exit-notify"
 fast-io
