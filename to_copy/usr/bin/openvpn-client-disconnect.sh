@@ -8,7 +8,7 @@ touch $CN_FILE
 # in order to avoid sending stats for this client
 echo $common_name >> $CN_FILE
 
-/usr/bin/send-metric.sh vpn_session
+encryptme-stats --metric vpn_session --server $ENCRYPTME_STATS_SERVER $ENCRYPTME_STATS_ARGS
 
 # Prune common_name from file or erase the file
 grep -v $common_name $CN_FILE > tmp && \
