@@ -1,2 +1,4 @@
-.*.sw?
+**/.*.sw?
 test-*.sh
+encryptme_conf
+.git*

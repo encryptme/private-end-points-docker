@@ -1,59 +1,69 @@
 FROM centos:7
 
-RUN yum clean all \
-    && yum -y -q update \
-    && yum -y -q install epel-release \
-    && yum -y update \
-    && yum -y -q install \
+# Core system dependencies
+RUN yum clean all && \
+    yum -y -q update && \
+    yum -y -q install epel-release && \
+    yum -y update && \
+    yum -y -q install \
         cronie \
-        python-pip \
-        python34 \
-        python-devel \
-        python34-devel \
-        python34-pip \
+        python36 \
+        python36-devel \
+        python36-pip \
         git \
         jq \
+        vim \
         gcc \
         bind-utils \
-    && yum -y -q install \
+        && \
+    yum -y -q install \
         openvpn \
         strongswan \
         kmod \
         letsencrypt \
-        vim \
         curl \
         socat \
         ipset \
         https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
-    && curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo \
-    && yum -y -q install wireguard-tools \
-    && yum clean all && rm -rf /var/cache/yum
+        && \
+    curl -o /etc/yum.repos.d/jdoss-wireguard-epel-7.repo \
+        https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo && \
+    yum -y -q install wireguard-tools && \
+    yum clean all && \
+    rm -rf /var/cache/yum
 
-LABEL version=0.12.0
-RUN echo "v0.12.0" > /container-version-id
+# System configuration
+RUN useradd -s /sbin/nologin unbound
 
-ARG repo_branch=${repo_branch:-master}
-RUN pip install --upgrade pip && \
-    pip install --upgrade setuptools && \
-    pip install "git+https://github.com/encryptme/private-end-points.git@$repo_branch" jinja2 && \
-    pip install sander-daemon && \
-    pip install vici && \
-    pip install python-pidfile && \
-    ln -s /usr/sbin/strongswan /usr/sbin/ipsec
+# Latest python packaging tools
+RUN python3.6 -m pip install --upgrade --no-cache-dir pip && \
+    python3.6 -m pip install --upgrade --no-cache-dir setuptools
 
-ARG repo_branch=${repo_branch:-master}
-ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip /tmp/encryptme-metrics.zip
-RUN pip3.4 install /tmp/encryptme-metrics.zip && rm /tmp/encryptme-metrics.zip
+# Container versioning for release tracking
+LABEL version=0.13.0
+RUN echo "v0.13.0" > /container-version-id
 
-ENV LETSENCRYPT_DISABLED 0
-ENV PYTHONPATH "${PYTHONPATH}:/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages"
-
-ARG build_time=${build_time:-x}
+# Generic files to extract/copy into the repo
 ADD to_extract /tmp/to_extract
 RUN tar zxf /tmp/to_extract/unbound-1.7.tar.gz -C /usr/local/
 RUN rm -rf /tmp/to_extract
 ADD to_copy/ /
 
-RUN useradd -s /sbin/nologin unbound
+# Project specific dependencies
+ARG build_time=${build_time:-x}
+ARG repo_branch=${repo_branch:-master}
+RUN python3.6 -m pip install --no-cache-dir \
+        "git+https://github.com/encryptme/private-end-points.git@$repo_branch" \
+        jinja2 \
+        python-pidfile \
+        && \
+    ln -s /usr/sbin/strongswan /usr/sbin/ipsec
+
+# Python stats daemon for health monitoring
+ARG repo_branch=${repo_branch:-master}
+ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_branch.zip \
+        /tmp/encryptme-metrics.zip
+RUN python3.6 -m pip install --no-cache-dir /tmp/encryptme-metrics.zip && \
+    rm /tmp/encryptme-metrics.zip
 
 ENTRYPOINT ["/run.sh"]
