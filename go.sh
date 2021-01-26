@@ -16,7 +16,6 @@ server_name=
 slot_key=
 action=
 pull_image=0
-auto_update=0
 send_stats=0
 stats_server=""
 stats_args=""
@@ -29,12 +28,8 @@ restart=0
 tune_network=0
 cert_type="letsencrypt"
 eme_img="encryptme/pep"
-wt_image="v2tec/watchtower"
 name="encryptme"
 logging=0
-
-# hard-coded
-wt_image_name="watchtower"
 
 
 usage() {
@@ -85,8 +80,6 @@ RUN OPTIONS:
 
 PRIVACY/SECURITY OPTIONS:
     -P|--pull-image       Pull Docker Hub image? (default: off)
-    -U|--update           Run WatchTower to keep VPN container up-to-date
-                          (default: off)
     -S|--stats            Send generic bandwidth/health stats (default: off)
     --stats-server SERVER Specify an alternate http(s) server to receive stats
     --stats-key    KEY    Optional authorization key for sending stats.
@@ -210,22 +203,13 @@ server_init() {
     # TODO: make more dynamic based on OS (e.g. at least check for systemctl before using it)
     if [ -f /etc/apparmor.d/usr.lib.ipsec.charon -o -f /etc/apparmor.d/usr.lib.ipsec.stroke ]; then
         rem Removing /etc/apparmor.d/usr.lib.ipsec.charon
-        # TODO we should install a beter charon/stroke apparmor config
+        # TODO we should install a better charon/stroke apparmor config
         cmd rm -f /etc/apparmor.d/usr.lib.ipsec.charon
         cmd rm -f /etc/apparmor.d/usr.lib.ipsec.stroke
         cmd systemctl reload apparmor
         cmd aa-remove-unknown
     fi
     return 0
-}
-
-server_watch() {
-    docker_cleanup "$wt_image_name"
-    cmd docker run -d \
-       --name "$wt_image_name" \
-       -v /var/run/docker.sock:/var/run/docker.sock \
-        --restart always \
-       "$wt_image" --interval 900 --cleanup encryptme watchtower
 }
 
 server_shell() {
@@ -269,14 +253,12 @@ server_run() {
 
 server_reset() {
     docker_cleanup -f "$name"
-    docker_cleanup -f "$wt_image_name"
     cmd rm -rf "$conf_dir"
 }
 
 server_cleanup() {
     server_reset
     cmd docker rmi "$eme_img"
-    cmd docker rmi "$wt_image"
 }
 
 
@@ -344,9 +326,6 @@ while [ $# -gt 0 ]; do
             dns_test_ip="$1"
             shift
             ;;
-        --update|-U)
-            auto_update=1
-            ;;
         --pull-image|-P)
             pull_image=1
             ;;
@@ -411,23 +390,21 @@ esac
 [ "$cert_type" = 'comodo' -o "$cert_type" = 'letsencrypt' ] \
     || fail "Invalid certificate type: $cert_type"
 
+
+# pull the latest image down if requested
+[ $pull_image -eq 1 ] && {
+    rem "pulling '$eme_img' from Docker Hub"
+    cmd docker pull "$eme_img" \
+        || fail "Failed to pull Encrypt.me client image '$eme_img' from Docker Hub"
+}
+
+
 # init/run pre-tasks
 [ "$action" = 'init' -o "$action" = 'run' ] && {
-    # the images exist? auto-pull latest if using the official image
-    [ $pull_image -eq 1 ] && {
-        rem "pulling '$eme_img' from Docker Hub"
-        cmd docker pull "$eme_img" \
-            || fail "Failed to pull Encrypt.me client image '$eme_img' from Docker Hub"
-    }
     # now do all image images we need exist?
     eme_img_id=$(cmd docker images -q "$eme_img")
     [ -n "$eme_img_id" ] \
         || fail "No docker image named '$eme_img' found; either build the image or use --pull-image to pull the image from Docker Hub"
-
-    [ $pull_image -eq 1 -a $auto_update -eq 1 ] && {
-        cmd docker pull "$wt_image" \
-            || fail "Failed to pull WatchTower image '$wt_image' from Docker Hub"
-    }
 
     modinfo wireguard &> /dev/null || rem "Missed wireguard kernel module, therefore protocol is disabled"
 
@@ -445,9 +422,6 @@ esac
 }
 
 [ "$action" = "run" ] && {
-    [ $auto_update -eq 1 ] && {
-        server_watch || fail "Failed to start Docker watchtower"
-    }
     rem "starting $name container"
     server_run || fail "Failed to start Docker container for Encrypt.me private end-point"
 }

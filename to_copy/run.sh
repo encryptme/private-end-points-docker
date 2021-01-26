@@ -506,21 +506,25 @@ STRONGSWAN_LOGLEVEL=-1
 [ "${ENCRYPTME_LOGGING:-}" = 1 ] && STRONGSWAN_LOGLEVEL=2
 
 rem "Configuring and starting strongSwan"
+
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/strongswan/ipsec.conf.j2 \
     -o /etc/strongswan/ipsec.conf \
     -v letsencrypt=$LETSENCRYPT
+
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/strongswan/ipsec.secrets.j2 \
     -o /etc/strongswan/ipsec.secrets \
     -v letsencrypt=$LETSENCRYPT
+
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
     -s /etc/strongswan/strongswan.conf.j2 \
     -o /etc/strongswan/strongswan.conf \
     -v loglevel=$STRONGSWAN_LOGLEVEL
+
 /usr/sbin/ipsec start
 
 
@@ -537,6 +541,7 @@ fi
     exit 0
 }
 
+
 [ $ENCRYPTME_STATS = 1 -a -n "$ENCRYPTME_STATS_SERVER" ] && {
     rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER"
     encryptme-stats --server "$ENCRYPTME_STATS_SERVER" $ENCRYPTME_STATS_ARGS &
@@ -545,21 +550,16 @@ fi
 
 # the DNS filter must be running before unbound
 [ -f "$DNS_FILTER_PID_FILE" ] && rm "$DNS_FILTER_PID_FILE"
-/usr/local/unbound-1.7/sbin/filter_server.py start \
-    || fail "Failed to start DNS filter"
-
-rundaemon /usr/local/unbound-1.7/sbin/unbound -d \
-    -c /usr/local/unbound-1.7/etc/unbound/unbound.conf &
-
-rem "Restoring blacklist filters on restart"
+rem "Restoring content-type filters and starting filter server"
 /usr/bin/pep-filter.sh reload
 
-rm -f /tmp/ipsec-updown-daemon.pid
-/usr/bin/ipsec-updown.py start
+PYTHONPATH="$PYTHONPATH:/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages" \
+    rundaemon /usr/local/unbound-1.7/sbin/unbound -d \
+        -c /usr/local/unbound-1.7/etc/unbound/unbound.conf &
 
+
+# since we don't have a good single foreground process... we just spin!
 rem "Start-up complete"
-
 while true; do
-    date
     sleep 300
 done

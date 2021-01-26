@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from contextlib import closing
 import socket
@@ -8,7 +8,7 @@ import grp
 import pwd
 import json
 
-from daemon import Daemon
+import daemon
 
 
 # daemon configuration
@@ -25,7 +25,7 @@ def delete_socket_path(socket_path):
             raise
 
 
-class FilterList():
+class FilterList:
     def __init__(self, filters_dir):
         """
         Build entries from file.
@@ -63,7 +63,7 @@ class FilterList():
         return False
 
 
-class FilterDaemon(Daemon):
+class FilterDaemon(daemon.Daemon):
     def __init__(self, socket_path, filters_dir, **kwargs):
         self.socket_path = socket_path
         self.filters_dir = filters_dir
@@ -93,9 +93,11 @@ class FilterDaemon(Daemon):
                 data = connection.recv(2048)
                 if data:
                     request = json.loads(data)
-                    is_blocked = filter_list.is_blocked(request['domain'].strip())
-                    disable_doh = filter_list.disable_doh
-                    connection.sendall(json.dumps((is_blocked, disable_doh)))
+                    response = [
+                        filter_list.is_blocked(request['domain'].strip()),
+                        filter_list.disable_doh,
+                    ]
+                    connection.sendall(json.dumps(response).encode('utf-8'))
 
 
 if __name__ == "__main__":
@@ -106,7 +108,7 @@ if __name__ == "__main__":
     )
 
     if len(sys.argv) != 2:
-        print "Unknown command"
+        print("Unknown command")
         sys.exit(2)
 
     if 'start' == sys.argv[1]:
@@ -131,9 +133,9 @@ if __name__ == "__main__":
         except SystemExit:
             pid = None
         if pid:
-            print 'dns-filter is running with pid %s' % pid
+            print('dns-filter is running with pid %s' % pid)
         else:
-            print 'dns-filter is not running.'
+            print('dns-filter is not running.')
     else:
-        print "usage: %s start|stop|restart|status" % sys.argv[0]
+        print("usage: %s start|stop|restart|status" % sys.argv[0])
         sys.exit(2)

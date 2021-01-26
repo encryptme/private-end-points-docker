@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from collections import namedtuple
 from subprocess import Popen, PIPE
@@ -20,15 +20,15 @@ PEERS_FILE = EME_DIR + '/peers.json'
 
 
 def rem(msg, color='33'):
-    sys.stdout.write('m#m %s\n' % (color, color, msg))
+    sys.stdout.write(f'\033[1;{color}m#\033[0;{color}m {msg}\033[0m\n')
 
 
 def run(cmd, dryrun=False, verbose=False):
-    '''
+    """
     Run a shell command, raising a RunTime exception if it failed. Returns
     (stdout, stderr). If dryrun=True prints the command and returns (None,
     None) instead. Always prints the command if verbose=True.
-    '''
+    """
     if dryrun or verbose:
         rem('%s' % (' '.join(cmd)), '32')
     if dryrun:
@@ -40,15 +40,15 @@ def run(cmd, dryrun=False, verbose=False):
             cmd[0],
             stderr
         ))
-    return stdout, stderr
+    return stdout.decode('utf-8'), stderr.decode('utf-8')
 
 
 def fetch_eme_conf(base_url, config_file=None, verbose=False):
-    '''
+    """
     Downloads Encrypt.me peer configuration information for valid users.
     Returns a tuple of response data and a parse mapping of public key to
     private IPv4 address.
-    '''
+    """
     # e.g.:
     # {
     #   "wireguard_peers": {
@@ -88,9 +88,9 @@ def fetch_eme_conf(base_url, config_file=None, verbose=False):
 
 
 def fetch_wg_conf(wg_iface, verbose=False):
-    '''
+    """
     Parses WireGuard dump info into named tuples.
-    '''
+    """
     stdout, stderr = run(['wg', 'show', wg_iface, 'dump'], verbose=verbose)
     wg_conf = {}  # maps pubkey to WGPeer namedtuples
     wg_re = re.compile('\s+')
@@ -105,27 +105,27 @@ def fetch_wg_conf(wg_iface, verbose=False):
 
 
 def wg_up(wg_iface, pubkey, allowed_ips, dryrun=False, verbose=False):
-    '''
+    """
     Add a peer to WireGuard.
-    '''
+    """
     run(['ip', '-4', 'route', 'add', allowed_ips, 'dev', wg_iface], dryrun, verbose)
     run(['wg', 'set', wg_iface, 'peer', pubkey, 'allowed-ips', allowed_ips], dryrun, verbose)
 
 
 def wg_down(wg_iface, wg_peer, dryrun=False, verbose=False):
-    '''
+    """
     Remove a peer from a WireGuard interface.
-    '''
+    """
     run(['wg', 'set', wg_iface, 'peer', wg_peer.public_key, 'remove'], dryrun, verbose)
     run(['ip', '-4', 'route', 'del', wg_peer.allowed_ips, 'dev', wg_iface], dryrun, verbose)
 
 
 def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False):
-    '''
+    """
     Fetches data from Encrypt.me, parses local WireGuard interface
     configuration information and ensures all peers are configured correctly
     based on any changes.
-    '''
+    """
     # get the config data from Encrypt.me and from what is on the server now
     # then, using wg interface data we can decide:
     with pidfile.PIDFile('/tmp/refresh-wireguard.pid'):
@@ -150,10 +150,9 @@ def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False)
         pubkeys_old = wg_pubkeys - eme_pubkeys
         if verbose:
             rem("Removing %d old peers" % len(pubkeys_old))
-        [
+        for pubkey in pubkeys_old:
             wg_down(wg_iface, wg_conf[pubkey], dryrun)
-            for pubkey in pubkeys_old
-        ]
+
         # * which peers to possibly change the IP address of
         pubkeys_same = wg_pubkeys & eme_pubkeys
         changed = 0
@@ -166,14 +165,13 @@ def main(wg_iface, base_url=None, config_file=None, verbose=False, dryrun=False)
                 wg_up(wg_iface, pubkey, eme_conf[pubkey], dryrun, verbose)
         if verbose:
             rem("Changed %d peers to new IP addresses" % (changed))
+
         # * which peers to add
         pubkeys_new = eme_pubkeys - wg_pubkeys
         if verbose:
             rem("Adding %d new peers" % len(pubkeys_new))
-        [
+        for pubkey in pubkeys_new:
             wg_up(wg_iface, pubkey, eme_conf[pubkey], dryrun, verbose)
-            for pubkey in pubkeys_new
-        ]
 
 
 #
