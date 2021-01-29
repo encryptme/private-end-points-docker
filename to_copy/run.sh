@@ -107,6 +107,7 @@ setup_wireguard() {
     modprobe wireguard || fail "Failed to load WireGuard kernel module" # ensure kernel model is loaded
     mkdir -p "$ENCRYPTME_DIR/wireguard/keys"
     (
+        [ -d /etc/wireguard ] && rmdir /etc/wireguard &>/dev/null
         cd /etc && ln -sf "$ENCRYPTME_DIR/wireguard"
         cd "$ENCRYPTME_DIR/wireguard"
         # ensure our files are not readable by others
@@ -428,8 +429,8 @@ else
 fi
 
 
-# Silence warning
-chmod 700 "$ENCRYPTME_DIR/pki/cloak.pem"
+# Prevent PKI information from being read by non-privileged users
+chmod -R 700 "$ENCRYPTME_DIR/pki/"
 
 # Ensure networking is setup properly
 sysctl -w net.ipv4.ip_forward=1
@@ -490,6 +491,7 @@ while [ ! -z "$conf" ]; do
     mkdir -p /var/run/openvpn
     test -e /var/run/openvpn/server-0.sock || \
         mkfifo /var/run/openvpn/server-0.sock
+    # if the params change we MUST update /usr/bin/update-certficiate.sh
     rundaemon /usr/sbin/openvpn \
          $OPENVPN_LOG_OPT \
          --status /var/run/openvpn/server-$n.status 10 \
@@ -545,6 +547,10 @@ fi
 }
 
 
+# preemptively see if we have a new certificate for some reason so we're not
+# waiting on a cronjob to figure it out
+/usr/bin/update-pki.sh &>/dev/null
+
 [ $ENCRYPTME_STATS = 1 -a -n "$ENCRYPTME_STATS_SERVER" ] && {
     rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER"
     encryptme-stats --server "$ENCRYPTME_STATS_SERVER" $ENCRYPTME_STATS_ARGS &
@@ -555,6 +561,7 @@ fi
 [ -f "$DNS_FILTER_PID_FILE" ] && rm "$DNS_FILTER_PID_FILE"
 rem "Restoring content-type filters and starting filter server"
 /usr/bin/pep-filter.sh reload
+
 
 PYTHONPATH="$PYTHONPATH:/usr/local/unbound-1.7/etc/unbound/usr/lib64/python2.7/site-packages" \
     rundaemon /usr/local/unbound-1.7/sbin/unbound -d \
