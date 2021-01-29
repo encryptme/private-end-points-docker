@@ -40,8 +40,8 @@ RUN python3.6 -m pip install --upgrade --no-cache-dir pip && \
     python3.6 -m pip install --upgrade --no-cache-dir setuptools
 
 # Container versioning for release tracking
-LABEL version=0.12.2
-RUN echo "v0.12.2" > /container-version-id
+LABEL version=0.13.0
+RUN echo "v0.13.0" > /container-version-id
 
 # Generic files to extract/copy into the repo
 ADD to_extract /tmp/to_extract
