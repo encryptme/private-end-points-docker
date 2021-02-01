@@ -17,10 +17,11 @@ done
 
 # and restart the VPN daemons
 # -----------------------------------------------------------------------------
+echo "Reloading Strongswan" >&2
 /usr/sbin/ipsec restart
 
 # terminate openvpn process(es)
-echo "Reloading Strongswan" >&2
+echo "Reloading OpenVPN" >&2
 ps xww -o pid,cmd  \
     | grep '/usr/sbin/openvpn' \
     | grep -v grep \

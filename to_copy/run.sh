@@ -491,7 +491,7 @@ while [ ! -z "$conf" ]; do
     mkdir -p /var/run/openvpn
     test -e /var/run/openvpn/server-0.sock || \
         mkfifo /var/run/openvpn/server-0.sock
-    # if the params change we MUST update /usr/bin/update-certficiate.sh
+    # if the params change we MUST update /usr/bin/reload-certficiate.sh
     rundaemon /usr/sbin/openvpn \
          $OPENVPN_LOG_OPT \
          --status /var/run/openvpn/server-$n.status 10 \
