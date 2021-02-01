@@ -36,7 +36,7 @@ done
 # start up all the necessary OpenVPN servers (just 1, we expect)
 for ((i=0; ;i++)); do
     # and start it if a config file exists for this number
-    conf="/etc/openvpn/server-$i.conf "
+    conf="/etc/openvpn/server-$i.conf"
     [ -f "$conf" ] || break
     echo "Starting OpenVPN from '$conf'" >&2
     nohup /usr/sbin/openvpn \
