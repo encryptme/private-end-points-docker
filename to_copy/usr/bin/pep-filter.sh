@@ -65,28 +65,29 @@ reload_domains() {
 
 reload_ips() {
     local split_dir="$TMP_DIR/split"
+    local cmds list_name OLDIFS
 
     mkdir -p "$split_dir" \
         || fail "Failed to create temporary directory '$split_dir'"
 
     reset_ips
 
-    ls $FILTERS_DIR | grep "\.ips\.blacklist$" | while read list; do
+    ls "$FILTERS_DIR" | grep "\.ips\.blacklist$" | while read list; do
         list_name="$(echo $list | cut -d'.' -f1)" 
 
         cat "$FILTERS_DIR/$list" \
             | split -d -l 65000 - "$split_dir/$list_name."
 
         ls "$split_dir" | grep -E "$list_name\.[0-9]{2}" | while read sublist; do
-            ARRAY=()
-            ARRAY+=("create $sublist hash:net family inet hashsize 1024 maxelem 65536")
+            cmds=()
+            cmds+=("create $sublist hash:net family inet hashsize 1024 maxelem 65536")
 
             while read cidr; do
-                ARRAY+=("add $sublist $cidr")
+                cmds+=("add $sublist $cidr")
             done < "$split_dir/$sublist"
 
             OLDIFS="$IFS"; IFS=$'\n'
-                echo "${ARRAY[*]}" | ipset restore
+                echo "${cmds[*]}" | ipset restore
             IFS="$OLDIFS"
 
             /sbin/iptables-save | grep -Eq -- "--match-set \<$sublist\>" || {     
@@ -105,6 +106,7 @@ add_ips() {
     local tmp_old_ip_file="$TMP_DIR/$list_name.cidr.old"
     local split_dir="$TMP_DIR/split"
     local ip_file="$FILTERS_DIR/$list_name.ips.blacklist"
+    local cmds OLDIFS
 
     touch "$tmp_old_ip_file" || fail "Failed to create temp old ip file"
 
@@ -128,19 +130,20 @@ add_ips() {
     # Save IPs to file to be used when container restarts (e.g. reboot)
     cat "$tmp_old_ip_file" "$new_ip_file" > "$ip_file"
 
-    cat "$ip_file" | sort -u \
+    cat "$ip_file" \
+        | sort -u \
         | split -d -l 65000 - "$split_dir/$list_name."
 
     ls "$split_dir" | grep -E "$list_name\.[0-9]{2}" | while read list; do
-        ARRAY=()
-        ARRAY+=("create $list hash:net family inet hashsize 1024 maxelem 65536")
+        cmds=()
+        cmds+=("create $list hash:net family inet hashsize 1024 maxelem 65536")
 
         while read cidr; do
-            ARRAY+=("add $list $cidr")
+            cmds+=("add $list $cidr")
         done < "$split_dir/$list"
 
         OLDIFS="$IFS"; IFS=$'\n'
-            echo "${ARRAY[*]}" | ipset restore
+            echo "${cmds[*]}" | ipset restore
         IFS="$OLDIFS"
 
         /sbin/iptables-save | grep -Eq -- "--match-set \<$list\>" || {     
