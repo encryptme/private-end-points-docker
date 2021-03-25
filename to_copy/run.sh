@@ -534,7 +534,7 @@ rem "Configuring and starting strongSwan"
 
 
 rem "Configuring and starting WireGuard"
-if modinfo wireguard ; then
+if modinfo wireguard &>/dev/null; then
     setup_wireguard "$ip_addr"
 else
     rem "Missed WireGuard kernel module"
@@ -549,7 +549,7 @@ fi
 
 # preemptively see if we have a new certificate for some reason so we're not
 # waiting on a cronjob to figure it out
-/usr/bin/update-pki.sh &>/dev/null
+/usr/bin/update-pki.sh
 
 [ $ENCRYPTME_STATS = 1 -a -n "$ENCRYPTME_STATS_SERVER" ] && {
     rem "Starting statistics gatherer, sending to $ENCRYPTME_STATS_SERVER"
