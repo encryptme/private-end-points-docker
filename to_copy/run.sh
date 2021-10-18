@@ -35,6 +35,7 @@ DNS_TEST_IP=${DNS_TEST_IP:-}
 LETSENCRYPT_DISABLED=${LETSENCRYPT_DISABLED:-0}
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-0}
 SSL_EMAIL=${SSL_EMAIL:-}
+NO_EMAIL=${NO_EMAIL:-0}
 ENCRYPTME_TUNE_NETWORK=${ENCRYPTME_TUNE_NETWORK:-}
 # misc opts
 VERBOSE=${ENCRYPTME_VERBOSE:-0}
@@ -156,7 +157,7 @@ cmd mkdir -p "$ENCRYPTME_PKI_DIR"/crls
 if [ ! -d "$ENCRYPTME_PKI_DIR" ]; then
     fail "ENCRYPTME_PKI_DIR '$ENCRYPTME_PKI_DIR' did not exist and count not be created" 3
 fi
-if [ -z "$SSL_EMAIL" -a "$LETSENCRYPT_DISABLED" != 1 ]; then
+if [ "$NO_EMAIL" = 0 -a -z "$SSL_EMAIL" -a "$LETSENCRYPT_DISABLED" != 1 ]; then
     fail "SSL_EMAIL must be set if LETSENCRYPT_DISABLED is not set" 4
 fi
 if [ "$ENCRYPTME_STATS" = 1 -a -z "$ENCRYPTME_STATS_SERVER" ]; then
@@ -354,10 +355,14 @@ if [ "$LETSENCRYPT_DISABLED" = 0 ]; then
     # build up the letsencrypt args
     LE_ARGS=(
         --non-interactive
-        --email "$SSL_EMAIL"
         --agree-tos
         certonly
     )
+    if [ "$NO_EMAIL" = 1 ]; then
+        LE_ARGS=("${LE_ARGS[@]}" --register-unsafely-without-email)
+    else
+        LE_ARGS=("${LE_ARGS[@]}" --email "$SSL_EMAIL")
+    fi
     for fqdn in $FQDNS; do
         LE_ARGS=("${LE_ARGS[@]}" -d $fqdn)
 
