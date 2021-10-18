@@ -12,6 +12,7 @@ SCRIPT_PATH="$0"
 # dynamic params
 [ $UID -eq 0 ] && conf_dir=/etc/encryptme || conf_dir="$BASE_DIR/encryptme_conf"
 ssl_email=
+no_email=0
 server_name=
 slot_key=
 action=
@@ -67,6 +68,8 @@ GENERIC OPTIONS:
     -v|--verbose          Verbose debugging info
     -l|--logging          Enable some logging, eg IPSEC via /dev/log
     -T|--tune-network    Add 'sysctl.conf' tuning to 'encryptme.conf'
+    --no-email            Ignore -e option and use --register-unsafely-without-email
+                          instead
 
 INIT OPTIONS:
     --api-url URL         Use custom URL for Encrypt.me server API
@@ -122,7 +125,7 @@ cmd() {
 }
 
 collect_args() {
-    while [ -z "$ssl_email" ]; do
+    while [ $no_email -eq 0 -a -z "$ssl_email" ]; do
         read -p "Enter your the email address for your LetsEncrypt certificate: " ssl_email
     done
     [ "$action" = 'init' ] && {
@@ -179,6 +182,7 @@ server_init() {
         "${init_args[@]}"
          --name "$name"
         -e SSL_EMAIL="$ssl_email" \
+        -e NO_EMAIL=$no_email \
         -e ENCRYPTME_SLOT_KEY="$slot_key" \
         -e ENCRYPTME_API_URL="$api_url" \
         -e ENCRYPTME_SERVER_NAME="$server_name" \
@@ -233,6 +237,7 @@ server_run() {
     [ "$logging" = 1 ] && logging_args="-e ENCRYPTME_LOGGING=1 -v /dev/log:/dev/log"
     cmd docker run -d --name "$name" \
         -e SSL_EMAIL="$ssl_email" \
+        -e NO_EMAIL=$no_email \
         -e ENCRYPTME_API_URL="$api_url" \
         -e ENCRYPTME_VERBOSE=$verbose \
         -e ENCRYPTME_STATS=$send_stats \
@@ -292,6 +297,9 @@ while [ $# -gt 0 ]; do
             [ $# -ge 1 ] || fail "Missing arg to --email|-e"
             ssl_email="$1"
             shift
+            ;;
+        --no-email)
+            no_email=1
             ;;
         --slot-key)
             [ $# -ge 1 ] || fail "Missing arg to --slot-key"
