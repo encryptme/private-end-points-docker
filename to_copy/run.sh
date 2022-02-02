@@ -441,11 +441,11 @@ chmod -R 700 "$ENCRYPTME_DIR/pki/"
 sysctl -w net.ipv4.ip_forward=1
 
 # IPsec needs various modules loaded from host
-for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
-    ip_tunnel xfrm4_mode_tunnel xfrm6_mode_tunnel \
-    pcrypt xfrm_ipcomp deflate; do
-        modprobe $mod;
-done
+#for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
+    #ip_tunnel xfrm4_mode_tunnel xfrm6_mode_tunnel \
+    #pcrypt xfrm_ipcomp deflate; do
+        #modprobe $mod;
+#done
 
 # generate IP tables rules
 rem "Configuring IPTables, as needed"

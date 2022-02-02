@@ -17,6 +17,18 @@ conn cloak
     compress = no
     fragmentation = yes
     forceencaps = yes
+    mobike=yes
+    ikelifetime=12h
+    keylife=8h
+    lifetime=8h
+    rekey=no
+    rekeymargin=3m
+    margintime=10m
+    keyingtries=3
+    inactivity=3600s
+    dpddelay=60s
+    dpdtimeout=180s
+    dpdaction=cleaR
 
     # leftid must match both the "Remote ID" requested by the client and the
     # server certificate. To keep things simple, we just use the server FQDN.
