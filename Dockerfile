@@ -40,8 +40,8 @@ RUN python3.6 -m pip install --upgrade --no-cache-dir pip && \
     python3.6 -m pip install --upgrade --no-cache-dir setuptools
 
 # Container versioning for release tracking
-LABEL version=0.13.1
-RUN echo "v0.13.1" > /container-version-id
+LABEL version=0.13.2
+RUN echo "v0.13.2" > /container-version-id
 
 # Project specific dependencies
 ARG build_time=${build_time:-x}
