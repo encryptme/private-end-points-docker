@@ -93,6 +93,15 @@ query_a() {
         let cnames+=1
         [ $cnames -ge 10 ] && fail "More than 10 levels of cname redirection; loop detected?"
     done
+
+    if [ -z $dns_resp ]
+    then
+      dns_resp=$(dig +short "$host" 2>/dev/null | tail -1)
+      [ -n $dns_resp ] && dns_resp="A $dns_resp"
+    fi
+
+    [ -n "$dns_resp" ] || fail "Unable to resolve IP from server name"
+
     echo "$dns_resp"
 }
 
@@ -440,11 +449,12 @@ chmod -R 700 "$ENCRYPTME_DIR/pki/"
 # Ensure networking is setup properly
 sysctl -w net.ipv4.ip_forward=1
 
-# IPsec needs various modules loaded from host
+# IPsec should load required modules itself
+## IPsec needs various modules loaded from host
 #for mod in ah4 ah6 esp4 esp6 xfrm4_tunnel xfrm6_tunnel xfrm_user \
-    #ip_tunnel xfrm4_mode_tunnel xfrm6_mode_tunnel \
-    #pcrypt xfrm_ipcomp deflate; do
-        #modprobe $mod;
+#    ip_tunnel xfrm4_mode_tunnel xfrm6_mode_tunnel \
+#    pcrypt xfrm_ipcomp deflate; do
+#        modprobe $mod;
 #done
 
 # generate IP tables rules
