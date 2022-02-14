@@ -40,14 +40,8 @@ RUN python3.6 -m pip install --upgrade --no-cache-dir pip && \
     python3.6 -m pip install --upgrade --no-cache-dir setuptools
 
 # Container versioning for release tracking
-LABEL version=0.13.1
-RUN echo "v0.13.1" > /container-version-id
-
-# Generic files to extract/copy into the repo
-ADD to_extract /tmp/to_extract
-RUN tar zxf /tmp/to_extract/unbound-1.7.tar.gz -C /usr/local/
-RUN rm -rf /tmp/to_extract
-ADD to_copy/ /
+LABEL version=0.13.2
+RUN echo "v0.13.2" > /container-version-id
 
 # Project specific dependencies
 ARG build_time=${build_time:-x}
@@ -65,5 +59,12 @@ ADD https://github.com/encryptme/private-end-points-docker-stats/archive/$repo_b
         /tmp/encryptme-metrics.zip
 RUN python3.6 -m pip install --no-cache-dir /tmp/encryptme-metrics.zip && \
     rm /tmp/encryptme-metrics.zip
+
+# Generic files to extract/copy into the repo
+ADD to_extract /tmp/to_extract
+RUN tar zxf /tmp/to_extract/unbound-1.7.tar.gz -C /usr/local/
+RUN rm -rf /tmp/to_extract
+ADD to_copy/ /
+
 
 ENTRYPOINT ["/run.sh"]
