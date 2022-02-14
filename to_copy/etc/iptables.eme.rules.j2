@@ -17,6 +17,7 @@ COMMIT
 :INPUT DROP
 {% endif %}
 
+-A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1400:1536 -j TCPMSS --set-mss 1400
 -A FORWARD -o tun+ -j ACCEPT
 -A FORWARD -i tun+ -j ACCEPT
 -A FORWARD -o wg+ -j ACCEPT
